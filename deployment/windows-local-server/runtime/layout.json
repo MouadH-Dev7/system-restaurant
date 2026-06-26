@@ -1,0 +1,35 @@
+{
+  "runtimeRoot": "C:\\RestaurantServer\\runtime",
+  "components": [
+    {
+      "name": "node",
+      "target": "node",
+      "requiredFiles": ["node.exe"]
+    },
+    {
+      "name": "pnpm",
+      "target": "pnpm",
+      "requiredFiles": ["pnpm.cmd"]
+    },
+    {
+      "name": "winsw",
+      "target": "winsw",
+      "requiredFiles": ["WinSW-x64.exe"]
+    },
+    {
+      "name": "nginx",
+      "target": "nginx",
+      "requiredFiles": ["nginx.exe"]
+    },
+    {
+      "name": "postgres",
+      "target": "postgres",
+      "requiredFiles": ["postgresql-installer.exe"]
+    },
+    {
+      "name": "redis",
+      "target": "redis",
+      "requiredFiles": ["Memurai-Developer.msi"]
+    }
+  ]
+}

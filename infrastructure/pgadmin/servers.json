@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Restaurant DB (Docker)",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "restaurant_db",
+      "Username": "postgres",
+      "Password": "postgres",
+      "SSLMode": "prefer"
+    }
+  }
+}

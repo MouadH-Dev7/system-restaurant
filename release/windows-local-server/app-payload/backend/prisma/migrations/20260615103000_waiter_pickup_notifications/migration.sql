@@ -1,0 +1,4 @@
+ALTER TYPE "WaiterNotificationType" ADD VALUE IF NOT EXISTS 'ORDER_READY_FOR_PICKUP';
+
+ALTER TABLE "waiter_notifications"
+ALTER COLUMN "tableId" DROP NOT NULL;

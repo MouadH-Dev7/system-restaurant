@@ -1,0 +1,25 @@
+{
+  "name": "restaurant-platform",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write .",
+    "typecheck": "pnpm -r typecheck",
+    "update-ip": "node scripts/update-host-ip.js",
+    "docker:dev": "node scripts/update-host-ip.js && docker compose up",
+    "docker:build": "node scripts/update-host-ip.js && docker compose up --build",
+    "release:windows-local-server": "powershell -ExecutionPolicy Bypass -File ./deployment/windows-local-server/scripts/build-release-folder.ps1",
+    "release:windows-bundle": "powershell -ExecutionPolicy Bypass -File ./deployment/windows-local-server/scripts/build-production-bundle.ps1",
+    "release:windows-app-payload": "powershell -ExecutionPolicy Bypass -File ./deployment/windows-local-server/scripts/prepare-application-payload.ps1"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "eslint": "^9.21.0",
+    "prettier": "^3.5.3",
+    "turbo": "^2.4.4",
+    "typescript": "^5.8.2"
+  }
+}

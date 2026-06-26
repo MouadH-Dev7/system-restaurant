@@ -1,0 +1,133 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/backend/Dockerfile
+    env_file:
+      - backend/.env.example
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4000
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql://postgres:123456@host.docker.internal:5432/restaurant_db}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: change-me-change-me-change-me-1234
+      JWT_REFRESH_SECRET: change-me-change-me-refresh-1234
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 30d
+      CUSTOMER_APP_URL: ${CUSTOMER_APP_URL:-http://localhost:3001}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005,http://localhost,http://127.0.0.1:3001,http://127.0.0.1:3002,http://127.0.0.1:3003,http://127.0.0.1:3004,http://127.0.0.1:3005,http://127.0.0.1,http://customer.localhost,http://pos.localhost,http://kitchen.localhost,http://admin.localhost,http://waiter.localhost}
+      HOST_IP: ${HOST_IP:-}
+      HOST_HOSTNAME: ${HOST_HOSTNAME:-}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:4000/auth/status']
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 90s
+    ports:
+      - '4000:4000'
+    volumes:
+      - ./shared:/app/shared:ro
+
+  customer-app:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/frontend/Dockerfile
+      args:
+        APP_NAME: customer-app
+        NEXT_PUBLIC_API_URL: /api
+        API_INTERNAL_URL: http://backend:4000
+        NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-http://localhost:4000}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '3001:3001'
+
+  pos-app:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/frontend/Dockerfile
+      args:
+        APP_NAME: pos-app
+        NEXT_PUBLIC_API_URL: /api
+        API_INTERNAL_URL: http://backend:4000
+        NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-http://localhost:4000}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '3002:3002'
+
+  kitchen-app:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/frontend/Dockerfile
+      args:
+        APP_NAME: kitchen-app
+        NEXT_PUBLIC_API_URL: /api
+        API_INTERNAL_URL: http://backend:4000
+        NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-http://localhost:4000}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '3003:3003'
+
+  admin-dashboard:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/frontend/Dockerfile
+      args:
+        APP_NAME: admin-dashboard
+        NEXT_PUBLIC_API_URL: /api
+        API_INTERNAL_URL: http://backend:4000
+        NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-http://localhost:4000}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '3004:3004'
+
+  waiter-app:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/frontend/Dockerfile
+      args:
+        APP_NAME: waiter-app
+        NEXT_PUBLIC_API_URL: /api
+        API_INTERNAL_URL: http://backend:4000
+        NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-http://localhost:4000}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '3005:3005'
+
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      - backend
+      - customer-app
+      - pos-app
+      - kitchen-app
+      - admin-dashboard
+      - waiter-app
+    ports:
+      - '80:80'
+    volumes:
+      - ./infrastructure/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro

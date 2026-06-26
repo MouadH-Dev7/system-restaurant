@@ -1,0 +1,4 @@
+CREATE TYPE "OrderSource" AS ENUM ('CUSTOMER', 'STAFF');
+
+ALTER TABLE "orders"
+ADD COLUMN "source" "OrderSource" NOT NULL DEFAULT 'CUSTOMER';

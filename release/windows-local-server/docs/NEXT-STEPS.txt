@@ -1,0 +1,9 @@
+﻿This folder is a release workspace for the future Windows installer.
+
+Still required before shipping to customers:
+- production builds
+- bundled Node runtime
+- Windows service wrapper
+- PostgreSQL silent installer
+- Redis-compatible local service installer
+- first-run bootstrap script
