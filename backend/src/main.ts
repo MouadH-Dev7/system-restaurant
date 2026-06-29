@@ -67,6 +67,7 @@ async function bootstrap() {
             const allowedUrl = new URL(a);
             return allowedUrl.origin === url.origin;
           } catch {
+            console.warn(`[CORS] Failed to parse allowed origin: ${a}`);
             return a === origin;
           }
         });
@@ -78,6 +79,7 @@ async function bootstrap() {
 
         callback(null, false);
       } catch {
+        console.warn(`[CORS] Failed to parse request origin: ${origin}`);
         callback(null, false);
       }
     },

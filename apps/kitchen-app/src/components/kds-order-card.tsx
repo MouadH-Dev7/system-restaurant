@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { memo } from 'react';
 import { getOrderTypeLabel } from '@repo/shared-types';
 import type { OrderResponse } from '@repo/shared-types';
+import { ElapsedTimer } from '@/components/kitchen-sections';
 import {
   kitchenT,
   localizeMenuItemName,
@@ -10,7 +11,7 @@ import {
   localizeOrderChannel,
   localizeOrderTypeLabel,
 } from '@/lib/i18n';
-import { formatOrderNumber, getElapsedMinutes, isLateOrder } from '@/lib/order-utils';
+import { formatOrderNumber, isLateOrder } from '@/lib/order-utils';
 import { useAppStore } from '@/store/app.store';
 
 type KdsOrderCardProps = {
@@ -31,7 +32,7 @@ const accentBorder = {
   ready: 'border-tertiary-container',
 };
 
-export function KdsOrderCard({
+export const KdsOrderCard = memo(function KdsOrderCard({
   order,
   accent,
   actionLabel,
@@ -44,22 +45,8 @@ export function KdsOrderCard({
 }: KdsOrderCardProps) {
   const language = useAppStore((state) => state.language);
   const t = kitchenT(language);
-  const [mounted, setMounted] = useState(false);
-  const [minutes, setMinutes] = useState(1);
   const orderType = getOrderTypeLabel(order);
-
-  useEffect(() => {
-    setMounted(true);
-    setMinutes(getElapsedMinutes(order.createdAt));
-
-    const timer = window.setInterval(() => {
-      setMinutes(getElapsedMinutes(order.createdAt));
-    }, 60_000);
-
-    return () => window.clearInterval(timer);
-  }, [order.createdAt]);
-
-  const late = mounted ? isLateOrder(order.createdAt, order.status) : false;
+  const late = isLateOrder(order.createdAt, order.status);
   const localizedTypeLabel = localizeOrderTypeLabel(order, language);
   const channelLabel = localizeOrderChannel(order, language);
 
@@ -101,7 +88,7 @@ export function KdsOrderCard({
                 {localizedTypeLabel}
               </span>
             </div>
-          ) : orderedAtLabel && mounted ? (
+          ) : orderedAtLabel ? (
             <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
               {orderedAtLabel}
             </p>
@@ -122,7 +109,7 @@ export function KdsOrderCard({
             <span className="material-symbols-outlined text-[16px]">
               {accent === 'ready' ? 'check_circle' : late ? 'schedule' : 'timer'}
             </span>
-            {accent === 'ready' ? t.readyBadge : mounted ? `${minutes}m` : '--'}
+            {accent === 'ready' ? t.readyBadge : <ElapsedTimer createdAt={order.createdAt} />}
           </span>
         </div>
       </div>
@@ -133,7 +120,7 @@ export function KdsOrderCard({
             {t.orderItems}
           </p>
           <div className="space-y-2">
-            {order.items.map((item) => (
+            {(order.items ?? []).map((item) => (
               <div key={item.id} className="flex flex-col">
                 <div className="flex justify-between items-start">
                   <span
@@ -180,4 +167,4 @@ export function KdsOrderCard({
       </button>
     </div>
   );
-}
+});

@@ -105,6 +105,7 @@ describe('OrdersService tenant isolation', () => {
     printingService,
     { create: jest.fn() } as any,
     { record: jest.fn() } as any,
+    { listModifierIngredients: jest.fn() } as any,
   );
 
   beforeEach(() => {
@@ -177,6 +178,7 @@ describe('OrdersService customer editing', () => {
     printingService,
     { create: jest.fn() } as any,
     { record: jest.fn() } as any,
+    { listModifierIngredients: jest.fn() } as any,
   );
 
   const updateInput = {
@@ -456,6 +458,7 @@ describe('OrdersService staff updates and printing', () => {
     printingService,
     { create: jest.fn() } as any,
     { record: jest.fn() } as any,
+    { listModifierIngredients: jest.fn() } as any,
   );
 
   beforeEach(() => {

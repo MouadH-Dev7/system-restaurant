@@ -14,6 +14,7 @@ import {
   restaurantRoom,
   tableRoom,
   type RealtimeEvent,
+  type RealtimeOrderDelta,
   type RealtimeOrderPayload,
   type WaiterNotificationDTO,
   type WaiterCallPayload,
@@ -29,6 +30,7 @@ const KITCHEN_EVENTS: RealtimeEvent[] = [
 ];
 
 const CUSTOMER_EVENTS: RealtimeEvent[] = [
+  REALTIME_EVENTS.ORDER_CREATED,
   REALTIME_EVENTS.ORDER_PREPARING,
   REALTIME_EVENTS.ORDER_READY,
   REALTIME_EVENTS.ORDER_DELIVERED,
@@ -49,24 +51,46 @@ function waiterRoom(restaurantId: string) {
   return `waiter:${restaurantId}`;
 }
 
+function getCorsOrigin(): boolean | string | RegExp | (boolean | string | RegExp)[] {
+  const envOrigin = process.env.CORS_ORIGIN;
+  if (!envOrigin) {
+    return true;
+  }
+
+  const origins = envOrigin
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  if (origins.length === 0) {
+    return true;
+  }
+
+  return origins;
+}
+
 @WebSocketGateway({
   cors: {
-    origin: true,
+    origin: getCorsOrigin(),
     credentials: true,
   },
 })
 export class RealtimeGateway implements OnModuleInit, OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(RealtimeGateway.name);
+  private readonly connectedClients = new Set<string>();
 
   @WebSocketServer()
   server!: Server;
 
   constructor(private readonly redis: RedisService) {}
 
-  onModuleInit() {
+  async onModuleInit() {
+    await this.redis.unsubscribeAll();
+
     const channels = Object.values(REDIS_ORDER_CHANNELS);
     for (const channel of channels) {
-      void this.redis.subscribe(channel, (message) => {
+      await this.redis.unsubscribe(channel);
+      await this.subscribeToChannel(channel, (message) => {
         this.handleRedisMessage(message);
       });
     }
@@ -75,15 +99,17 @@ export class RealtimeGateway implements OnModuleInit, OnGatewayConnection, OnGat
   }
 
   handleConnection(client: Socket) {
-    this.logger.debug(`Client connected: ${client.id}`);
+    this.connectedClients.add(client.id);
+    this.logger.debug(`Client connected: ${client.id} (total: ${this.connectedClients.size})`);
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.debug(`Client disconnected: ${client.id}`);
+    this.connectedClients.delete(client.id);
+    this.logger.debug(`Client disconnected: ${client.id} (total: ${this.connectedClients.size})`);
   }
 
   getConnectedClientsCount() {
-    return this.server?.sockets?.sockets?.size ?? 0;
+    return this.connectedClients.size;
   }
 
   @SubscribeMessage('kitchen:join')
@@ -159,19 +185,31 @@ export class RealtimeGateway implements OnModuleInit, OnGatewayConnection, OnGat
     this.emitOrderEvent(event, order);
   }
 
+  async subscribeToChannel(channel: string, handler: (message: string) => void) {
+    await this.redis.subscribe(channel, handler);
+  }
+
   emitOrderEvent(event: RealtimeEvent, order: RealtimeOrderPayload['order']) {
     const restaurant = restaurantRoom(order.restaurantId);
     const waiter = waiterRoom(order.restaurantId);
 
+    const delta: RealtimeOrderDelta = {
+      event,
+      orderId: order.id,
+      status: order.status,
+      version: order.version,
+      updatedAt: order.lastModifiedAt,
+    };
+
     if (KITCHEN_EVENTS.includes(event) || POS_RESTAURANT_EVENTS.includes(event)) {
-      this.server.to(restaurant).emit(event, order);
+      this.server.to(restaurant).emit(event, delta);
     }
 
-    this.server.to(waiter).emit(event, order);
+    this.server.to(waiter).emit(event, delta);
 
     if (CUSTOMER_EVENTS.includes(event) && order.tableId) {
       const table = tableRoom(order.restaurantId, order.tableId);
-      this.server.to(table).emit(event, order);
+      this.server.to(table).emit(event, delta);
     }
   }
 

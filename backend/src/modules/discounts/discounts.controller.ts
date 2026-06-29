@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Delete, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Delete, Query } from '@nestjs/common';
 import { DiscountApprovalStatus, DiscountType, UserRole } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { IdParamDto } from '../../common/dto/uuid-param.dto';
@@ -15,6 +15,7 @@ export class DiscountsController {
   constructor(private readonly discountsService: DiscountsService) {}
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   create(@Body() input: CreateDiscountDto, @CurrentUser() user: AuthenticatedUser) {
     return this.discountsService.create({ ...input, actor: user });
   }
@@ -54,6 +55,7 @@ export class DiscountsController {
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   remove(
     @Param() params: IdParamDto,
     @Body('reason') reason: string,

@@ -26,12 +26,15 @@ importers:
 
   apps/admin-dashboard:
     dependencies:
+      '@repo/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@repo/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
-      '@repo/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
+      '@tanstack/react-query':
+        specifier: '5'
+        version: 5.101.1(react@19.2.6)
       axios:
         specifier: ^1.9.0
         version: 1.16.1
@@ -93,12 +96,12 @@ importers:
       '@hookform/resolvers':
         specifier: ^3.10.0
         version: 3.10.0(react-hook-form@7.76.1(react@19.2.6))
+      '@repo/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@repo/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
-      '@repo/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       axios:
         specifier: ^1.9.0
         version: 1.16.1
@@ -157,12 +160,12 @@ importers:
 
   apps/kitchen-app:
     dependencies:
+      '@repo/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@repo/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
-      '@repo/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       axios:
         specifier: ^1.9.0
         version: 1.16.1
@@ -221,12 +224,12 @@ importers:
 
   apps/pos-app:
     dependencies:
+      '@repo/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@repo/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
-      '@repo/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       axios:
         specifier: ^1.9.0
         version: 1.16.1
@@ -285,6 +288,9 @@ importers:
 
   apps/waiter-app:
     dependencies:
+      '@repo/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@repo/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -483,6 +489,21 @@ importers:
         specifier: ^8.26.1
         version: 8.60.0(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
 
+  packages/i18n:
+    devDependencies:
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@repo/ts-config':
+        specifier: workspace:*
+        version: link:../ts-config
+      eslint:
+        specifier: ^9.21.0
+        version: 9.39.4(jiti@2.7.0)
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+
   packages/shared-types:
     devDependencies:
       '@repo/eslint-config':
@@ -499,28 +520,6 @@ importers:
         version: 5.9.3
 
   packages/ts-config: {}
-
-  packages/ui:
-    dependencies:
-      react:
-        specifier: ^19.0.0
-        version: 19.2.6
-    devDependencies:
-      '@repo/eslint-config':
-        specifier: workspace:*
-        version: link:../eslint-config
-      '@repo/ts-config':
-        specifier: workspace:*
-        version: link:../ts-config
-      '@types/react':
-        specifier: ^19.0.10
-        version: 19.2.15
-      eslint:
-        specifier: ^9.21.0
-        version: 9.39.4(jiti@2.7.0)
-      typescript:
-        specifier: ^5.8.2
-        version: 5.9.3
 
 packages:
 
@@ -1572,6 +1571,14 @@ packages:
 
   '@tailwindcss/postcss@4.3.0':
     resolution: {integrity: sha512-Jm05Tjx+9yCLGv5qw1c+84Psds8MnyrEQYCB+FFk2lgGiUjlRqdxke4mVTuYrj2xnVZqKim2Apr5ySuQRYAw/w==}
+
+  '@tanstack/query-core@5.101.1':
+    resolution: {integrity: sha512-Y6Y92dkXtNqx67m2pMSxUsA3zOCwv862JexZRP8/EPwvKXMPu9m8rv43spiXWzOUIggQ3SQApttALStzhA8B4g==}
+
+  '@tanstack/react-query@5.101.1':
+    resolution: {integrity: sha512-ZnONUuQKJe1bJMStXUL1s5uKN9FcfC28j5cK+iDZcdSHtUv1wtin1cGc/Oewhf2Oc4eKY7lggtpvT/AbMmhHew==}
+    peerDependencies:
+      react: ^18 || ^19
 
   '@tokenizer/inflate@0.4.1':
     resolution: {integrity: sha512-2mAv+8pkG6GIZiF1kNg1jAjh27IDxEPKwdGul3snfztFerfPGI1LjDezZp3i7BElXompqEtPmoPx6c2wgtWsOA==}
@@ -6055,6 +6062,13 @@ snapshots:
       '@tailwindcss/oxide': 4.3.0
       postcss: 8.5.15
       tailwindcss: 4.3.0
+
+  '@tanstack/query-core@5.101.1': {}
+
+  '@tanstack/react-query@5.101.1(react@19.2.6)':
+    dependencies:
+      '@tanstack/query-core': 5.101.1
+      react: 19.2.6
 
   '@tokenizer/inflate@0.4.1':
     dependencies:

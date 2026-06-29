@@ -167,6 +167,7 @@ export class DiscountsService {
     const discounts = await this.prisma.discount.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      take: 300,
     });
 
     return discounts.map((discount) => this.toDto(discount));
@@ -197,10 +198,11 @@ export class DiscountsService {
         continue;
       }
 
+      const discountValue = Number(discount.value);
       const appliedAmount =
         discount.type === DiscountType.PERCENTAGE
-          ? (runningSubtotal * discount.value) / 100
-          : discount.value;
+          ? (runningSubtotal * discountValue) / 100
+          : discountValue;
       const boundedAmount = Math.min(Math.max(appliedAmount, 0), runningSubtotal);
       discountTotal += boundedAmount;
       runningSubtotal = Math.max(runningSubtotal - boundedAmount, 0);
@@ -406,7 +408,7 @@ export class DiscountsService {
       },
     });
 
-    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    return items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
   }
 
   private isUuid(value: string) {
@@ -418,7 +420,7 @@ export class DiscountsService {
       id: discount.id,
       orderId: discount.orderId,
       type: discount.type,
-      value: discount.value,
+      value: Number(discount.value),
       reason: discount.reason,
       approvalStatus: discount.approvalStatus,
       approvedBy: discount.approvedBy ?? null,

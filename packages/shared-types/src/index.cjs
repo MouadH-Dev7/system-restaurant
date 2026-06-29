@@ -25,8 +25,6 @@ const REDIS_ORDER_CHANNELS = {
   CANCELLED: "orders.cancelled",
 };
 
-const WALK_IN_TABLE_ID = "c9999999-9999-4999-8999-999999999999";
-
 function restaurantRoom(restaurantId) {
   return `restaurant:${restaurantId}`;
 }
@@ -68,18 +66,19 @@ function getOrderTypeLabel(order) {
   };
 }
 
-function formatDailyOrderNumber(order) {
-  return String(order.dailyOrderNumber);
-}
+const CSRF_CONFIG = Object.freeze({
+  withCredentials: true,
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
+});
 
 module.exports = {
+  CSRF_CONFIG,
   OrderType,
   REALTIME_EVENTS,
   REDIS_ORDER_CHANNELS,
-  WALK_IN_TABLE_ID,
   restaurantRoom,
   tableRoom,
   isWalkInOrder,
   getOrderTypeLabel,
-  formatDailyOrderNumber,
 };

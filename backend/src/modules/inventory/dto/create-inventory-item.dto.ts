@@ -1,20 +1,21 @@
 import {
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
 } from 'class-validator';
-import type { CreateInventoryItemInput } from '@repo/shared-types';
+import type { CreateInventoryItemInput, InventoryUnit } from '@repo/shared-types';
 
 export class CreateInventoryItemDto implements Omit<CreateInventoryItemInput, 'restaurantId'> {
   @IsString()
   @MaxLength(120)
   name!: string;
 
-  @IsString()
-  @MaxLength(32)
-  unit!: string;
+  @IsEnum(['KG', 'GRAM', 'LITER', 'ML', 'PIECE', 'PACK'] as const)
+  unit!: InventoryUnit;
 
   @IsNumber()
   @Min(0)
@@ -29,7 +30,6 @@ export class CreateInventoryItemDto implements Omit<CreateInventoryItemInput, 'r
   unitPrice!: number;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(160)
-  supplier!: string;
+  @IsUUID()
+  supplierId?: string | null;
 }

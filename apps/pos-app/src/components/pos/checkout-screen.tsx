@@ -60,8 +60,8 @@ function buildCheckoutBundle(
             language,
             firstOrder ? isWalkInOrder(firstOrder) : false,
           ),
-    itemCount: selectedOrders.reduce((sum, order) => sum + order.items.length, 0),
-    total: selectedOrders.reduce((sum, order) => sum + order.remainingAmount, 0),
+    itemCount: selectedOrders.reduce((sum, order) => sum + (order.items ?? []).length, 0),
+    total: selectedOrders.reduce((sum, order) => sum + (order.remainingAmount ?? 0), 0),
     orders: selectedOrders,
   };
 }

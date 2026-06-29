@@ -4,6 +4,8 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -79,6 +81,7 @@ export class MenuController {
   }
 
   @Post('menus')
+  @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   createMenu(@Body() input: CreateMenuDto, @CurrentUser() user: AuthenticatedUser): Promise<MenuDTO> {
     return this.menuService.createMenu({
@@ -98,12 +101,14 @@ export class MenuController {
   }
 
   @Delete('menus/:menuId')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   archiveMenu(@Param('menuId') menuId: string, @CurrentUser() user: AuthenticatedUser): Promise<MenuDTO> {
     return this.menuService.archiveMenu(menuId, user.restaurantId);
   }
 
   @Post('menu-items')
+  @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   createMenuItem(
     @Body() input: CreateMenuItemDto,
@@ -134,12 +139,14 @@ export class MenuController {
   }
 
   @Delete('menu-items/:menuItemId')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   archiveMenuItem(@Param('menuItemId') menuItemId: string, @CurrentUser() user: AuthenticatedUser): Promise<MenuItemDTO> {
     return this.menuService.archiveMenuItem(menuItemId, user.restaurantId);
   }
 
   @Post('modifier-groups')
+  @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   createModifierGroup(
     @Body() input: CreateModifierGroupDto,
@@ -166,12 +173,14 @@ export class MenuController {
   }
 
   @Delete('modifier-groups/:modifierGroupId')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   deleteModifierGroup(@Param('modifierGroupId') modifierGroupId: string, @CurrentUser() user: AuthenticatedUser): Promise<ModifierGroupDTO> {
     return this.menuService.deleteModifierGroup(modifierGroupId, user.restaurantId);
   }
 
   @Post('modifier-options')
+  @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   createModifierOption(
     @Body() input: CreateModifierOptionDto,
@@ -202,6 +211,7 @@ export class MenuController {
   }
 
   @Delete('modifier-options/:modifierOptionId')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   archiveModifierOption(@Param('modifierOptionId') modifierOptionId: string, @CurrentUser() user: AuthenticatedUser): Promise<ModifierOptionDTO> {
     return this.menuService.archiveModifierOption(modifierOptionId, user.restaurantId);

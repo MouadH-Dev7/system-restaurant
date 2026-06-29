@@ -5,10 +5,13 @@ import {
   REALTIME_EVENTS,
   type OrderResponse,
   type RealtimeEvent,
+  type RealtimeOrderDelta,
   type WaiterNotificationRealtimePayload,
 } from '@repo/shared-types';
+import { getOrCreateGuestSessionId } from '@/lib/guest-session';
 import { getSocket, getSocketStatus, type SocketStatus } from '@/lib/socket';
 import { getOrderById } from '@/services/order.service';
+import { useAppStore } from '@/store/app.store';
 import type { OrderContextDTO } from '@/types/order';
 
 type UseOrderTrackingSocketOptions = {
@@ -59,16 +62,23 @@ export function useOrderTrackingSocket({
     const handleConnect = () => {
       refreshStatus();
       if (joinedRoomRef.current !== roomKey) {
-        socket.emit('customer:join', { restaurantId, tableId });
+        const guestSessionId = getOrCreateGuestSessionId(context);
+        socket.emit('customer:join', { restaurantId, tableId, guestSessionId });
         joinedRoomRef.current = roomKey;
       }
     };
 
-    const handleOrderEvent = (order: OrderResponse) => {
-      if (order.id !== orderId) {
+    const handleOrderEvent = (delta: RealtimeOrderDelta) => {
+      if (delta.orderId !== orderId) {
         return;
       }
-      onUpdateRef.current(order);
+      void getOrderById(orderId, context!).then((freshOrder) => {
+        onUpdateRef.current(freshOrder);
+        const tableNum = freshOrder.table?.number;
+        if (tableNum != null) {
+          useAppStore.getState().setDisplayTableNumber(tableNum);
+        }
+      });
     };
     const handleWaiterAccepted = (payload: WaiterNotificationRealtimePayload) => {
       onWaiterAcceptedRef.current?.(payload);
@@ -121,6 +131,10 @@ export function useOrderTrackingSocket({
         const order = await getOrderById(orderId!, context!);
         if (active) {
           onUpdateRef.current(order);
+          const tableNum = order.table?.number;
+          if (tableNum != null) {
+            useAppStore.getState().setDisplayTableNumber(tableNum);
+          }
         }
       } catch {
         // ignore polling errors

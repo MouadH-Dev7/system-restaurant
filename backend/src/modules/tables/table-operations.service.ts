@@ -35,7 +35,7 @@ export class TableOperationsService {
       where: {
         restaurantId,
         tableId,
-        status: { in: ['PENDING', 'PREPARING', 'READY', 'DELIVERED', 'PAID'] },
+        status: { in: ['PENDING', 'PREPARING', 'READY', 'DELIVERED'] },
       },
       include: {
         table: true,
@@ -73,20 +73,20 @@ export class TableOperationsService {
     const payments: TablePaymentTimelineEntryDTO[] = paymentsRaw.map((payment) => ({
       paymentId: payment.id,
       orderId: payment.orderId,
-      amount: payment.amount,
+      amount: Number(payment.amount),
       paymentMethod: payment.paymentMethod,
       status: payment.status,
       createdBy: payment.createdBy ?? null,
       createdAt: payment.createdAt.toISOString(),
-      refundedAmount: payment.refundedAmount,
-      remainingAmount: payment.remainingAmount,
+      refundedAmount: Number(payment.refundedAmount),
+      remainingAmount: Number(payment.remainingAmount),
     }));
 
     const discounts: DiscountDTO[] = discountsRaw.map((discount) => ({
       id: discount.id,
       orderId: discount.orderId,
       type: discount.type,
-      value: discount.value,
+      value: Number(discount.value),
       reason: discount.reason,
       approvalStatus: discount.approvalStatus,
       approvedBy: discount.approvedBy ?? null,

@@ -99,7 +99,7 @@ type WaiterStore = {
 
 function normalizeOrders(orders: OrderResponse[]) {
   return orders
-    .filter((order) => ACTIVE_ORDER_STATUSES.has(order.status))
+    .filter((order) => order?.id && ACTIVE_ORDER_STATUSES.has(order.status))
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
@@ -107,7 +107,7 @@ function buildTableOrderGroups(orders: OrderResponse[]): TableOrdersGroupDTO[] {
   const groups = new Map<string, TableOrdersGroupDTO>();
 
   for (const order of normalizeOrders(orders)) {
-    const key = order.tableId || `walk-in:${order.id}`;
+    const key = order.tableId || `walk-in:${order.id ?? ''}`;
     const current = groups.get(key);
 
     if (!current) {
@@ -116,7 +116,7 @@ function buildTableOrderGroups(orders: OrderResponse[]): TableOrdersGroupDTO[] {
           tableId: order.tableId,
           tableNumber: order.table?.number ?? null,
           totalOrders: 1,
-          totalAmount: order.grandTotal,
+          totalAmount: order.grandTotal ?? 0,
           preparingOrders: order.status === 'PREPARING' ? 1 : 0,
           readyOrders: order.status === 'READY' ? 1 : 0,
           deliveredOrders: order.status === 'DELIVERED' ? 1 : 0,
@@ -128,7 +128,7 @@ function buildTableOrderGroups(orders: OrderResponse[]): TableOrdersGroupDTO[] {
 
     current.orders.push(order);
     current.summary.totalOrders += 1;
-    current.summary.totalAmount += order.grandTotal;
+    current.summary.totalAmount += order.grandTotal ?? 0;
     current.summary.preparingOrders += order.status === 'PREPARING' ? 1 : 0;
     current.summary.readyOrders += order.status === 'READY' ? 1 : 0;
     current.summary.deliveredOrders += order.status === 'DELIVERED' ? 1 : 0;
@@ -161,7 +161,7 @@ function normalizeDraftLine(line: DraftLine): DraftLine {
 }
 
 function mapOrderToDraftLines(order: OrderResponse): DraftLine[] {
-  return order.items.map((item) => ({
+  return (order.items ?? []).map((item) => ({
     cartLineId: item.id,
     menuItemId: item.menuItemId,
     quantity: item.quantity,

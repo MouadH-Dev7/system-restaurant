@@ -76,7 +76,7 @@ export class OrderRealtimePublisher {
       case REALTIME_EVENTS.ORDER_PAID:
         return NOTIFICATION_QUEUE_JOBS.ORDER_PAID;
       case REALTIME_EVENTS.ORDER_CANCELLED:
-        return NOTIFICATION_QUEUE_JOBS.ORDER_PAID;
+        return NOTIFICATION_QUEUE_JOBS.ORDER_CANCELLED;
       default:
         throw new Error(
           `Unsupported realtime event for notification queue: ${event}`,

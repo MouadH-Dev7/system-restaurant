@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from 'fs/promises';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { QueueName } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BACKUP_QUEUE_JOBS } from '../../queue/queue.constants';
@@ -11,6 +11,8 @@ import { RealtimeGateway } from '../../websocket/realtime.gateway';
 
 @Injectable()
 export class SystemService {
+  private readonly logger = new Logger(SystemService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
@@ -26,14 +28,16 @@ export class SystemService {
 
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-    } catch {
+    } catch (error) {
+      this.logger.error(`Health check - database ping failed: ${(error as Error).message}`, (error as Error).stack);
       databaseStatus = 'offline';
     }
 
     try {
       await this.redis.set('system:health:ping', 'ok', 5);
       await this.redis.get('system:health:ping');
-    } catch {
+    } catch (error) {
+      this.logger.error(`Health check - redis ping failed: ${(error as Error).message}`, (error as Error).stack);
       redisStatus = 'offline';
     }
 

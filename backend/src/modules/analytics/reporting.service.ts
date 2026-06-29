@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import type {
   BusyHourDTO,
   DashboardAnalyticsDTO,
@@ -71,29 +71,28 @@ export class ReportingService {
         menuItemId: row.menuItemId,
         name: item?.name ?? row.menuItemId,
         quantitySold: row._sum.quantity ?? 0,
-        revenue: (row._sum.price ?? 0) * (row._sum.quantity ?? 0),
+        revenue: Number(row._sum.price ?? 0) * Number(row._sum.quantity ?? 0),
       };
     });
   }
 
   async getBusyHours(restaurantId: string): Promise<BusyHourDTO[]> {
-    const orders = await this.prisma.order.findMany({
-      where: {
-        restaurantId,
-      },
-      select: {
-        createdAt: true,
-      },
-    });
+    const rows = await this.prisma.$queryRaw<Array<{ hour: number; count: bigint }>>(
+      Prisma.sql`
+        SELECT EXTRACT(HOUR FROM "createdAt")::int AS hour, COUNT(*) AS count
+        FROM "orders"
+        WHERE "restaurantId" = ${restaurantId}::uuid
+        GROUP BY EXTRACT(HOUR FROM "createdAt")
+        ORDER BY hour
+      `,
+    );
 
     const buckets = new Map<number, number>();
     for (let hour = 0; hour < 24; hour += 1) {
       buckets.set(hour, 0);
     }
-
-    for (const order of orders) {
-      const hour = order.createdAt.getHours();
-      buckets.set(hour, (buckets.get(hour) ?? 0) + 1);
+    for (const row of rows) {
+      buckets.set(row.hour, Number(row.count));
     }
 
     return Array.from(buckets.entries()).map(([hour, count]) => ({
@@ -151,7 +150,7 @@ export class ReportingService {
       this.sumRevenue(restaurantId, startOfMonth),
     ]);
 
-    return { today, week, month };
+    return { today: Number(today), week: Number(week), month: Number(month) };
   }
 
   private async getOrderMetrics(restaurantId: string) {
@@ -165,30 +164,27 @@ export class ReportingService {
   }
 
   private async getCustomerMetrics(restaurantId: string) {
-    const orders = await this.prisma.order.findMany({
-      where: { restaurantId },
-      select: { guestSessionId: true },
+    const rows = await this.prisma.order.groupBy({
+      by: ['guestSessionId'],
+      where: {
+        restaurantId,
+        guestSessionId: { not: null },
+      },
+      _count: {
+        guestSessionId: true,
+      },
     });
 
-    const totals = new Map<string, number>();
-    for (const order of orders) {
-      if (!order.guestSessionId) {
-        continue;
-      }
-      totals.set(order.guestSessionId, (totals.get(order.guestSessionId) ?? 0) + 1);
-    }
-
+    let total = 0;
     let returning = 0;
-    for (const count of totals.values()) {
-      if (count > 1) {
+    for (const row of rows) {
+      total += 1;
+      if (row._count.guestSessionId > 1) {
         returning += 1;
       }
     }
 
-    return {
-      total: totals.size,
-      returning,
-    };
+    return { total, returning };
   }
 
   private async getRecentOrders(restaurantId: string): Promise<DashboardRecentOrder[]> {
@@ -197,28 +193,29 @@ export class ReportingService {
       orderBy: { createdAt: 'desc' },
       take: 8,
       include: {
-        table: true,
-        items: true,
-        payments: true,
-        discounts: true,
+        table: { select: { number: true } },
+        items: { select: { price: true, quantity: true } },
+        payments: { select: { status: true, amount: true, refundedAmount: true, remainingAmount: true } },
+        discounts: { select: { approvalStatus: true, value: true, type: true } },
       },
     });
 
     return orders.map((order) => {
-      const subtotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const subtotal = order.items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
       const discountTotal = order.discounts.reduce((sum, discount) => {
         if (discount.approvalStatus !== 'APPROVED') {
           return sum;
         }
+        const discountValue = Number(discount.value);
         if (discount.type === 'PERCENTAGE') {
-          return sum + (subtotal * discount.value) / 100;
+          return sum + (subtotal * discountValue) / 100;
         }
-        return sum + discount.value;
+        return sum + discountValue;
       }, 0);
       const grandTotal = Math.max(subtotal - discountTotal, 0);
       const paidAmount = order.payments
         .filter((payment) => payment.status !== 'CANCELLED')
-        .reduce((sum, payment) => sum + (payment.amount - payment.refundedAmount), 0);
+        .reduce((sum, payment) => sum + (Number(payment.amount) - Number(payment.refundedAmount)), 0);
 
       const financialStatus: OrderFinancialStatus =
         order.status === OrderStatus.CANCELLED
@@ -227,7 +224,7 @@ export class ReportingService {
             ? 'REFUNDED'
             : order.payments.length === 0
               ? 'UNPAID'
-              : order.payments.some((payment) => payment.remainingAmount > 0)
+              : order.payments.some((payment) => Number(payment.remainingAmount) > 0)
                 ? 'PARTIALLY_PAID'
                 : 'PAID';
 

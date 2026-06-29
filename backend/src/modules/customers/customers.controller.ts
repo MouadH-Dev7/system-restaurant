@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { IdParamDto } from '../../common/dto/uuid-param.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -19,6 +19,7 @@ export class CustomersController {
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   create(@Body() input: CreateCustomerDto, @CurrentUser() user: AuthenticatedUser) {
     return this.customersService.create({
       ...input,

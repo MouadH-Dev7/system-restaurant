@@ -7,11 +7,6 @@ import type {
 } from '@repo/shared-types';
 import { http } from '@/lib/http';
 
-export async function getDashboardAnalytics() {
-  const { data } = await http.get<DashboardAnalyticsDTO>('/analytics/dashboard');
-  return data;
-}
-
 export async function getRestaurantDashboardAnalytics(restaurantId: string) {
   const { data } = await http.get<DashboardAnalyticsDTO>('/analytics/dashboard');
   return data;

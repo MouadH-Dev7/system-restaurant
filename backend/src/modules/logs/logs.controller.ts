@@ -16,6 +16,12 @@ export class LogsController {
     return this.logsService.list(user.restaurantId, query);
   }
 
+  @Get('users')
+  @Roles(UserRole.ADMIN)
+  async listUsers(@CurrentUser() user: AuthenticatedUser) {
+    return this.logsService.listDistinctUsers(user.restaurantId);
+  }
+
   @Get('employee-risk')
   @Roles(UserRole.ADMIN)
   employeeRisk(@CurrentUser() user: AuthenticatedUser, @Query() query: ListLogsQueryDto) {

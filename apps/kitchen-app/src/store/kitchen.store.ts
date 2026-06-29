@@ -18,6 +18,10 @@ export const useKitchenStore = create<KitchenState>((set) => ({
   setOrders: (orders) => set({ orders }),
   upsertOrder: (order) =>
     set((state) => {
+      if (!order.id) {
+        return {};
+      }
+
       const without = state.orders.filter((entry) => entry.id !== order.id);
       if (!ACTIVE_STATUSES.has(order.status)) {
         return { orders: without };
@@ -36,5 +40,5 @@ export const useKitchenStore = create<KitchenState>((set) => ({
 }));
 
 export function ordersByStatus(orders: OrderResponse[], status: OrderResponse['status']) {
-  return orders.filter((order) => order.status === status);
+  return orders.filter((order) => order?.status === status);
 }

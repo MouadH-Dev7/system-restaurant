@@ -154,6 +154,7 @@ export class PaymentsService {
       orderBy: {
         createdAt: 'desc',
       },
+      take: 300,
     });
 
     return payments.map((payment) => this.toDto(payment));
@@ -172,9 +173,9 @@ export class PaymentsService {
 
     const paidAmount = payments
       .filter((payment) => payment.status !== PaymentStatus.CANCELLED)
-      .reduce((sum, payment) => sum + Math.max(payment.amount - payment.refundedAmount, 0), 0);
+      .reduce((sum, payment) => sum + Math.max(Number(payment.amount) - Number(payment.refundedAmount), 0), 0);
 
-    const refundedAmount = payments.reduce((sum, payment) => sum + payment.refundedAmount, 0);
+    const refundedAmount = payments.reduce((sum, payment) => sum + Number(payment.refundedAmount), 0);
 
     return {
       payments,
@@ -203,7 +204,7 @@ export class PaymentsService {
       where: { id: paymentId },
       data: {
         ...(input.amount !== undefined
-          ? { amount: input.amount, remainingAmount: input.amount - payment.refundedAmount }
+          ? { amount: input.amount, remainingAmount: input.amount - Number(payment.refundedAmount) }
           : {}),
         ...(input.referenceNumber !== undefined ? { referenceNumber: input.referenceNumber } : {}),
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
@@ -253,12 +254,12 @@ export class PaymentsService {
     }
 
     const payment = await this.requireOwnedPayment(paymentId, input.actor);
-    if (input.amount > payment.remainingAmount) {
+    if (input.amount > Number(payment.remainingAmount)) {
       throw new ConflictException('Refund cannot exceed remaining paid amount');
     }
 
-    const refundedAmount = payment.refundedAmount + input.amount;
-    const remainingAmount = payment.amount - refundedAmount;
+    const refundedAmount = Number(payment.refundedAmount) + input.amount;
+    const remainingAmount = Number(payment.amount) - refundedAmount;
     const nextStatus =
       remainingAmount <= 0 ? PaymentStatus.REFUNDED : PaymentStatus.PARTIALLY_REFUNDED;
 
@@ -361,7 +362,7 @@ export class PaymentsService {
       after: this.toDto(after),
       details: {
         orderId: after.orderId,
-        amountDelta: after.amount - before.amount,
+        amountDelta: Number(after.amount) - Number(before.amount),
         timestamp: after.updatedAt.toISOString(),
       },
       context: {
@@ -375,14 +376,14 @@ export class PaymentsService {
     return {
       id: payment.id,
       orderId: payment.orderId,
-      amount: payment.amount,
+      amount: Number(payment.amount),
       paymentMethod: payment.paymentMethod,
       status: payment.status,
       referenceNumber: payment.referenceNumber ?? null,
       notes: payment.notes ?? null,
       reason: payment.reason ?? null,
-      refundedAmount: payment.refundedAmount,
-      remainingAmount: payment.remainingAmount,
+      refundedAmount: Number(payment.refundedAmount),
+      remainingAmount: Number(payment.remainingAmount),
       createdBy: payment.createdBy ?? null,
       updatedBy: payment.updatedBy ?? null,
       createdAt: payment.createdAt.toISOString(),

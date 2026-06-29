@@ -19,7 +19,7 @@ export class ReportsService {
     const jobs = await this.prisma.reportExportJob.findMany({
       where: { restaurantId },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: 300,
     });
 
     return jobs.map((job) => this.toDto(job));
@@ -305,8 +305,8 @@ export class ReportsService {
           unit: item.unit,
           stockLevel: item.stockLevel,
           minAlertLevel: item.minAlertLevel,
-          unitPrice: item.unitPrice,
-          supplier: item.supplier,
+          unitPrice: Number(item.unitPrice),
+          supplierId: item.supplierId,
           status: item.status,
           updatedAt: item.updatedAt.toISOString(),
         }));
@@ -324,7 +324,7 @@ export class ReportsService {
           email: customer.email,
           tier: customer.tier,
           totalOrders: customer.totalOrders,
-          totalSpent: customer.totalSpent,
+          totalSpent: Number(customer.totalSpent),
           lastVisitAt: customer.lastVisitAt?.toISOString() ?? null,
         }));
       }
@@ -353,9 +353,9 @@ export class ReportsService {
           paymentId: payment.id,
           orderId: payment.orderId,
           dailyOrderNumber: payment.order.dailyOrderNumber,
-          amount: payment.amount,
-          refundedAmount: payment.refundedAmount,
-          netAmount: payment.amount - payment.refundedAmount,
+          amount: Number(payment.amount),
+          refundedAmount: Number(payment.refundedAmount),
+          netAmount: Number(payment.amount) - Number(payment.refundedAmount),
           paymentMethod: payment.paymentMethod,
           status: payment.status,
           createdBy: payment.createdBy,
@@ -389,7 +389,7 @@ export class ReportsService {
           orderId: discount.orderId,
           dailyOrderNumber: discount.order.dailyOrderNumber,
           type: discount.type,
-          value: discount.value,
+          value: Number(discount.value),
           reason: discount.reason,
           approvalStatus: discount.approvalStatus,
           createdBy: discount.createdBy,
@@ -460,20 +460,21 @@ export class ReportsService {
         });
 
         return orders.map((order) => {
-          const subtotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+          const subtotal = order.items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
           const discountTotal = order.discounts.reduce((sum, discount) => {
             if (discount.approvalStatus !== 'APPROVED') {
               return sum;
             }
+            const discountValue = Number(discount.value);
             if (discount.type === 'PERCENTAGE') {
-              return sum + (subtotal * discount.value) / 100;
+              return sum + (subtotal * discountValue) / 100;
             }
-            return sum + discount.value;
+            return sum + discountValue;
           }, 0);
           const grandTotal = Math.max(subtotal - discountTotal, 0);
           const paidAmount = order.payments
             .filter((payment) => payment.status !== 'CANCELLED')
-            .reduce((sum, payment) => sum + (payment.amount - payment.refundedAmount), 0);
+            .reduce((sum, payment) => sum + (Number(payment.amount) - Number(payment.refundedAmount)), 0);
 
           return {
             id: order.id,
@@ -482,7 +483,7 @@ export class ReportsService {
             orderType: order.orderType,
             grandTotal,
             paidAmount,
-            refundsAmount: order.payments.reduce((sum, payment) => sum + payment.refundedAmount, 0),
+            refundsAmount: order.payments.reduce((sum, payment) => sum + Number(payment.refundedAmount), 0),
             discountsCount: order.discounts.length,
             itemCount: order.items.length,
             tableNumber: order.table?.number ?? null,

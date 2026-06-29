@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CalendarRange, ChevronDown, ChevronUp, Download, PlusCircle, ReceiptText, RefreshCw, TrendingDown, TrendingUp, UserRound } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Download, RefreshCw } from 'lucide-react';
 import type { AuditLogDTO, StaffMemberDTO } from '@repo/shared-types';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useI18n } from '@/hooks/use-i18n';
 import { useAppStore } from '@/store/app.store';
 import { listLogs } from '@/services/logs.service';
 import { listStaff } from '@/services/staff.service';
+import { RiskSummaryCards, RiskFilters, exportLogsCsv, asEmployeeRiskDetails } from './risk-sections';
 
 type OrderItemSnapshot = {
   menuItemId?: string;
@@ -71,95 +72,12 @@ type EmployeeRiskDetails = {
 type RiskSeverity = 'high' | 'medium' | 'low';
 type RangePreset = 'TODAY' | 'WEEK' | 'CUSTOM';
 
-function exportLogsCsv(rows: AuditLogDTO[]) {
-  if (rows.length === 0) {
-    return;
-  }
-
-  const headers = [
-    'createdAt',
-    'userName',
-    'role',
-    'action',
-    'orderId',
-    'displayOrderId',
-    'dailyOrderNumber',
-    'tableNumber',
-    'previousStatus',
-    'nextStatus',
-    'previousTotal',
-    'nextTotal',
-    'totalDelta',
-    'riskFlags',
-    'reason',
-  ];
-
-  const encode = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-
-  const lines = rows.map((row) => {
-    const details = asEmployeeRiskDetails(row.details);
-    return [
-      row.createdAt,
-      row.userName,
-      row.role,
-      row.action,
-      details?.orderId ?? '',
-      details?.displayOrderId ?? '',
-      details?.dailyOrderNumber ?? '',
-      details?.tableNumber ?? '',
-      details?.previousStatus ?? '',
-      details?.nextStatus ?? '',
-      details?.previousTotal ?? '',
-      details?.nextTotal ?? '',
-      details?.totalDelta ?? '',
-      (details?.riskFlags ?? []).join(' | '),
-      details?.reason ?? '',
-    ]
-      .map(encode)
-      .join(',');
-  });
-
-  const content = [headers.join(','), ...lines].join('\n');
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'cashier-order-edit-investigation.csv';
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-function asEmployeeRiskDetails(value: unknown): EmployeeRiskDetails | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-
-  return value as EmployeeRiskDetails;
-}
-
 function endOfDayIso(value: string) {
   return new Date(`${value}T23:59:59.999`).toISOString();
 }
 
 function startOfDayIso(value: string) {
   return new Date(`${value}T00:00:00.000`).toISOString();
-}
-
-function currentDateInputValue() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function minusDaysInputValue(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 function sumItems(items: OrderItemSnapshot[] | undefined) {
@@ -252,10 +170,10 @@ function itemLabel(item: OrderItemSnapshot, language: string) {
 }
 
 function localizeEditSource(sourceContext: string | null | undefined, t: (key: string) => string) {
-  if (sourceContext === 'history') return 'سجل الطلبات';
-  if (sourceContext === 'checkout') return 'صفحة الدفع';
-  if (sourceContext === 'tables') return 'شاشة الطاولة';
-  if (sourceContext === 'board') return 'لوحة الطلبات';
+  if (sourceContext === 'history') return t('employeeRisk.editSourceHistory');
+  if (sourceContext === 'checkout') return t('employeeRisk.editSourceCheckout');
+  if (sourceContext === 'tables') return t('employeeRisk.editSourceTables');
+  if (sourceContext === 'board') return t('employeeRisk.editSourceBoard');
   return t('employeeRisk.noReason');
 }
 
@@ -296,7 +214,7 @@ function localizeReason(reason: string | null | undefined, t: (key: string) => s
     normalized === 'Le caissier a modifie la commande depuis l historique POS' ||
     normalized === 'قام الكاشير بتعديل الطلب من سجل POS'
   ) {
-    return 'تم تعديل الطلب من سجل الطلبات';
+    return t('employeeRisk.reason.posHistoryAr');
   }
 
   if (
@@ -304,7 +222,7 @@ function localizeReason(reason: string | null | undefined, t: (key: string) => s
     normalized === 'Le caissier a modifie la commande depuis la page de paiement' ||
     normalized === 'قام الكاشير بتعديل الطلب من صفحة الدفع'
   ) {
-    return 'تم تعديل الطلب من صفحة الدفع';
+    return t('employeeRisk.reason.paymentScreenAr');
   }
 
   if (
@@ -312,7 +230,7 @@ function localizeReason(reason: string | null | undefined, t: (key: string) => s
     normalized === 'Le caissier a modifie la commande depuis le tableau des commandes' ||
     normalized === 'قام الكاشير بتعديل الطلب من لوحة الطلبات'
   ) {
-    return 'تم تعديل الطلب من لوحة الطلبات';
+    return t('employeeRisk.reason.orderBoardAr');
   }
 
   if (
@@ -320,7 +238,7 @@ function localizeReason(reason: string | null | undefined, t: (key: string) => s
     normalized === 'Le caissier a modifie la commande depuis l ecran de table' ||
     normalized === 'قام الكاشير بتعديل الطلب من شاشة الطاولة'
   ) {
-    return 'تم تعديل الطلب من شاشة الطاولة';
+    return t('employeeRisk.reason.tableScreenAr');
   }
 
   if (normalized === 'Order settled through payments') {
@@ -339,8 +257,20 @@ export function EmployeeRiskScreen() {
   const [error, setError] = useState<string | null>(null);
   const [rangePreset, setRangePreset] = useState<RangePreset>('TODAY');
   const [staffCode, setStaffCode] = useState('');
-  const [fromDate, setFromDate] = useState(currentDateInputValue);
-  const [toDate, setToDate] = useState(currentDateInputValue);
+  const [fromDate, setFromDate] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
+  const [toDate, setToDate] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
   const [search, setSearch] = useState('');
   const [severity, setSeverity] = useState<'ALL' | RiskSeverity>('ALL');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -356,7 +286,7 @@ export function EmployeeRiskScreen() {
     try {
       setLoading(true);
       setError(null);
-      const [nextLogs, nextStaff] = await Promise.all([
+      const [result, nextStaff] = await Promise.all([
         listLogs(activeRestaurantId, {
           module: 'ORDERS',
           role: 'CASHIER',
@@ -367,7 +297,7 @@ export function EmployeeRiskScreen() {
         }),
         listStaff(activeRestaurantId),
       ]);
-      setLogs(nextLogs);
+      setLogs(result.data);
       setStaff(nextStaff);
     } catch (nextError) {
       setError(getApiErrorMessage(nextError, t('employeeRisk.title')));
@@ -475,154 +405,42 @@ export function EmployeeRiskScreen() {
         </div>
       ) : null}
 
-      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="panel rounded-[28px] border border-slate-200 bg-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">{t('employeeRisk.totalEdits')}</p>
-              <p className="mt-3 text-3xl font-black text-slate-950">{formatNumber(filteredLogs.length)}</p>
-            </div>
-            <ReceiptText className="h-9 w-9 text-[#b55229]" />
-          </div>
-        </div>
-        <div className="panel rounded-[28px] border border-rose-200 bg-rose-50/70">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-500">{t('employeeRisk.totalReduced')}</p>
-              <p className="mt-3 text-3xl font-black text-rose-900">{formatCurrency(summary.reducedAmount)}</p>
-            </div>
-            <TrendingDown className="h-9 w-9 text-rose-600" />
-          </div>
-        </div>
-        <div className="panel rounded-[28px] border border-amber-200 bg-amber-50/70">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-amber-600">{t('employeeRisk.totalAdded')}</p>
-              <p className="mt-3 text-3xl font-black text-amber-900">{formatCurrency(summary.addedAmount)}</p>
-            </div>
-            <PlusCircle className="h-9 w-9 text-amber-600" />
-          </div>
-        </div>
-        <div className="panel rounded-[28px] border border-emerald-200 bg-emerald-50/70">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600">{t('employeeRisk.netImpact')}</p>
-              <p className="mt-3 text-3xl font-black text-emerald-900">{formatCurrency(summary.netImpact)}</p>
-              <p className="mt-2 text-xs text-emerald-700">{t('employeeRisk.highRiskCases')}: {formatNumber(summary.high)}</p>
-            </div>
-            <TrendingUp className="h-9 w-9 text-emerald-600" />
-          </div>
-        </div>
-      </section>
+      <RiskSummaryCards
+        totalEdits={filteredLogs.length}
+        reducedAmount={summary.reducedAmount}
+        addedAmount={summary.addedAmount}
+        netImpact={summary.netImpact}
+        highRiskCount={summary.high}
+      />
 
-      <section className="panel mt-6 rounded-[30px] border border-slate-200 bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-black text-slate-950">{t('employeeRisk.filterTitle')}</h3>
-            <p className="text-sm text-slate-500">{t('employeeRisk.filterSubtitle')}</p>
-          </div>
-          <button
-            type="button"
-            className="ghost-btn"
-            onClick={() => {
-              setRangePreset('TODAY');
-              setStaffCode('');
-              setFromDate(currentDateInputValue());
-              setToDate(currentDateInputValue());
-              setSearch('');
-              setSeverity('ALL');
-            }}
-          >
-            <CalendarRange size={16} />
-            <span>{t('employeeRisk.resetFilters')}</span>
-          </button>
-        </div>
-
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-          <div className="xl:col-span-6 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={`ghost-btn small ${rangePreset === 'TODAY' ? 'active' : ''}`}
-              onClick={() => {
-                setRangePreset('TODAY');
-                setFromDate(currentDateInputValue());
-                setToDate(currentDateInputValue());
-              }}
-            >
-              {t('employeeRisk.rangeToday')}
-            </button>
-            <button
-              type="button"
-              className={`ghost-btn small ${rangePreset === 'WEEK' ? 'active' : ''}`}
-              onClick={() => {
-                setRangePreset('WEEK');
-                setFromDate(minusDaysInputValue(6));
-                setToDate(currentDateInputValue());
-              }}
-            >
-              {t('employeeRisk.rangeWeek')}
-            </button>
-            <button
-              type="button"
-              className={`ghost-btn small ${rangePreset === 'CUSTOM' ? 'active' : ''}`}
-              onClick={() => setRangePreset('CUSTOM')}
-            >
-              {t('employeeRisk.rangeCustom')}
-            </button>
-          </div>
-
-          <select
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-            value={staffCode}
-            onChange={(event) => setStaffCode(event.target.value)}
-          >
-            <option value="">{t('employeeRisk.allStaff')}</option>
-            {staff.map((member) => (
-              <option key={member.id} value={member.staffCode ?? ''}>
-                {member.name} - {roleLabel(member.role)}
-              </option>
-            ))}
-          </select>
-
-          <input
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-            placeholder={t('employeeRisk.searchPlaceholder')}
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-
-          <select
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-            value={severity}
-            onChange={(event) => setSeverity(event.target.value as 'ALL' | RiskSeverity)}
-          >
-            <option value="ALL">{t('employeeRisk.allSeverities')}</option>
-            <option value="high">{t('employeeRisk.severityHigh')}</option>
-            <option value="medium">{t('employeeRisk.severityMedium')}</option>
-            <option value="low">{t('employeeRisk.severityLow')}</option>
-          </select>
-
-          <input
-            type="date"
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-            value={fromDate}
-            onChange={(event) => {
-              setRangePreset('CUSTOM');
-              setFromDate(event.target.value);
-            }}
-          />
-
-          <input
-            type="date"
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-            value={toDate}
-            onChange={(event) => {
-              setRangePreset('CUSTOM');
-              setToDate(event.target.value);
-            }}
-          />
-        </div>
-      </section>
+      <RiskFilters
+        rangePreset={rangePreset}
+        staffCode={staffCode}
+        search={search}
+        severity={severity}
+        fromDate={fromDate}
+        toDate={toDate}
+        staff={staff}
+        onRangePresetChange={setRangePreset}
+        onStaffCodeChange={setStaffCode}
+        onSearchChange={setSearch}
+        onSeverityChange={setSeverity}
+        onFromDateChange={setFromDate}
+        onToDateChange={setToDate}
+        onReset={() => {
+          setRangePreset('TODAY');
+          setStaffCode('');
+          setSearch('');
+          setSeverity('ALL');
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const day = String(now.getDate()).padStart(2, '0');
+          const today = `${year}-${month}-${day}`;
+          setFromDate(today);
+          setToDate(today);
+        }}
+      />
 
       <section className="panel mt-6 rounded-[30px] border border-slate-200 bg-white">
         {loading ? (
@@ -698,7 +516,7 @@ export function EmployeeRiskScreen() {
                         </strong>
                       </div>
                       <div className="flex items-center justify-between gap-4 rounded-2xl bg-white px-4 py-3">
-                        <span>مصدر التعديل</span>
+                        <span>{t('employeeRisk.editSource')}</span>
                         <strong className="text-slate-900">{localizeEditSource(details?.sourceContext, t)}</strong>
                       </div>
                     </div>

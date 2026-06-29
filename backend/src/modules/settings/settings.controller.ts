@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -17,6 +17,7 @@ export class SettingsController {
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   upsert(@Body() input: UpsertSettingsDto, @CurrentUser() user: AuthenticatedUser) {
     return this.settingsService.upsert({

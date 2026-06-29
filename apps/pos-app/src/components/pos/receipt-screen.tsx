@@ -8,8 +8,6 @@ import {
   formatCountLabel,
   formatGuestLabel,
   formatTableLabel,
-  getLocalizedPaymentMethod,
-  localizeBackendPaymentMethod,
   posT,
 } from '@/lib/i18n';
 import { isWalkInOrder, mapOrderItemsToLines } from '@/lib/mappers/order.mapper';
@@ -18,10 +16,8 @@ import { getOrderById, usePosDataStore } from '@/store/pos-data.store';
 
 export function ReceiptScreen() {
   const selectedOrderId = usePosUiStore((state) => state.selectedOrderId);
-  const language = usePosUiStore((state) => state.language);
   const lastReceiptOrder = usePosUiStore((state) => state.lastReceiptOrder);
   const lastReceiptBundle = usePosUiStore((state) => state.lastReceiptBundle);
-  const lastPaymentMethod = usePosUiStore((state) => state.lastPaymentMethod);
   const receiptLanguage = usePosUiStore((state) => state.receiptLanguage);
   const setReceiptLanguage = usePosUiStore((state) => state.setReceiptLanguage);
   const setActiveScreen = usePosUiStore((state) => state.setActiveScreen);
@@ -30,8 +26,7 @@ export function ReceiptScreen() {
   const order = getOrderById(orders, selectedOrderId) ?? lastReceiptOrder;
   const [printing, setPrinting] = useState(false);
   const [printError, setPrintError] = useState<string | null>(null);
-  const paymentMethod = getLocalizedPaymentMethod(language, lastPaymentMethod);
-  const t = posT(language);
+  const t = posT(receiptLanguage);
   const primaryOrder = order ?? lastReceiptBundle?.orders[0] ?? null;
 
   const displayBundle =
@@ -42,17 +37,17 @@ export function ReceiptScreen() {
           orderIds: [order.id],
           tableLabel: formatTableLabel(
             order.table?.number,
-            language,
+            receiptLanguage,
             isWalkInOrder(order),
           ),
           guestLabel: formatGuestLabel(
             order.guestSessionId,
             order.displayOrderId ?? order.dailyOrderNumber,
-            language,
+            receiptLanguage,
             isWalkInOrder(order),
           ),
-          itemCount: order.items.length,
-          total: order.grandTotal,
+          itemCount: (order.items ?? []).length,
+          total: order.grandTotal ?? 0,
           orders: [order],
         }
       : null);
@@ -70,9 +65,9 @@ export function ReceiptScreen() {
   const locale = receiptLanguage === 'ar' ? 'ar-DZ' : receiptLanguage === 'fr' ? 'fr-FR' : 'en-US';
   const restaurantName = settings?.restaurantName?.trim() || t.restaurant;
   const restaurantAddress = settings?.businessAddress?.trim() || '';
-  const receiptTax = displayBundle.orders.reduce((sum, entry) => sum + entry.taxTotal, 0);
-  const receiptSubtotal = displayBundle.orders.reduce((sum, entry) => sum + entry.subtotal, 0);
-  const receiptDiscounts = displayBundle.orders.reduce((sum, entry) => sum + entry.discountTotal, 0);
+  const receiptTax = displayBundle.orders.reduce((sum, entry) => sum + (entry.taxTotal ?? 0), 0);
+  const receiptSubtotal = displayBundle.orders.reduce((sum, entry) => sum + (entry.subtotal ?? 0), 0);
+  const receiptDiscounts = displayBundle.orders.reduce((sum, entry) => sum + (entry.discountTotal ?? 0), 0);
   const receiptPaid = displayBundle.summary?.paidAmount ?? displayBundle.total;
   const receiptDate = displayBundle.createdAt ?? displayBundle.orders[0]!.createdAt;
 
@@ -96,36 +91,46 @@ export function ReceiptScreen() {
                 throw new Error('Receipt preview not found');
               }
 
+              const styles = Array.from(document.styleSheets)
+                .map((styleSheet) => {
+                  try {
+                    return Array.from(styleSheet.cssRules).map((rule) => rule.cssText).join('');
+                  } catch {
+                    return '';
+                  }
+                })
+                .join('\n');
+
               popup.document.write(`
                 <html dir="${receiptLanguage === 'ar' ? 'rtl' : 'ltr'}">
                   <head>
                     <title>${t.printReceipt}</title>
                     <style>
-                      @page { size: auto; margin: 10mm; }
-                      body {
-                        margin: 0;
-                        padding: 16px;
-                        background: white;
-                        color: #0f172a;
-                        font-family: ${receiptLanguage === 'ar' ? 'Tahoma, Arial, sans-serif' : 'Arial, sans-serif'};
-                      }
-                      #pos-receipt {
-                        max-width: 420px;
-                        margin: 0 auto;
-                        background: white;
+                      ${styles}
+                      @page { size: auto; margin: 0mm; }
+                      body { margin: 0; padding: 16px; background: white; font-family: monospace; }
+                      #pos-receipt { max-width: 420px; margin: 0 auto; box-shadow: none !important; }
+                      @media print {
+                        body { padding: 0; margin: 0; }
+                        .no-print { display: none !important; }
                       }
                     </style>
                   </head>
-                  <body>
+                  <body dir="${receiptLanguage === 'ar' ? 'rtl' : 'ltr'}">
                     ${receiptNode.outerHTML}
-                    <script>window.onload = () => window.print();</script>
                   </body>
                 </html>
               `);
               popup.document.close();
+              popup.focus();
+
+              setTimeout(() => {
+                popup.print();
+                popup.close();
+                setPrinting(false);
+              }, 150);
             } catch (error) {
               setPrintError(error instanceof Error ? error.message : 'Receipt printing failed.');
-            } finally {
               setPrinting(false);
             }
           }}
@@ -190,22 +195,21 @@ export function ReceiptScreen() {
           ) : null}
         </div>
 
-        <div className="space-y-1 border-b border-dashed border-slate-300 py-4 font-sans text-[10px] font-bold uppercase text-slate-500">
+          <div className="space-y-1 border-b border-dashed border-slate-300 py-4 font-sans text-[10px] font-bold uppercase text-slate-500">
           <div className="flex justify-between">
             <span>
               {displayBundle.mode === 'table'
                 ? `${t.tableBundle} (${displayBundle.orderIds.length})`
                 : `${t.order} #${displayBundle.orders[0]?.displayOrderId ?? displayBundle.orders[0]?.dailyOrderNumber ?? ''}`}
             </span>
-            <span>{paymentMethod?.label ?? t.paid}</span>
           </div>
           <div className="flex justify-between">
             <span>
               {primaryOrder
-                ? formatTableLabel(primaryOrder.table?.number, language, isWalkInOrder(primaryOrder))
+                ? formatTableLabel(primaryOrder.table?.number, receiptLanguage, isWalkInOrder(primaryOrder))
                 : displayBundle.tableLabel}
             </span>
-            <span>{formatCountLabel(displayBundle.itemCount, t.item, t.items, language)}</span>
+            <span>{formatCountLabel(displayBundle.itemCount, t.item, t.items, receiptLanguage)}</span>
           </div>
           <div className="flex justify-between">
             <span>{formatReceiptDate(displayBundle.orders[0]!.createdAt)}</span>
@@ -229,7 +233,7 @@ export function ReceiptScreen() {
 
         <div className="space-y-4 py-6">
           {displayBundle.orders.map((bundleOrder) => {
-            const lines = mapOrderItemsToLines(bundleOrder, language);
+            const lines = mapOrderItemsToLines(bundleOrder, receiptLanguage);
             return (
               <div key={bundleOrder.id} className="space-y-3">
                 {displayBundle.orders.length > 1 ? (
@@ -281,20 +285,6 @@ export function ReceiptScreen() {
             <span>{formatMoney(receiptPaid, locale, currency)}</span>
           </div>
         </div>
-
-        {displayBundle.mode === 'table' && displayBundle.payments?.length ? (
-          <div className="mt-6 border-t border-dashed border-slate-300 pt-4">
-            <p className="mb-3 text-sm font-bold uppercase text-slate-600">{t.paymentMethodsUsed}</p>
-            <div className="space-y-2">
-              {displayBundle.payments.map((payment) => (
-                <div key={payment.paymentId} className="flex justify-between gap-3 text-[11px]">
-                  <span>{localizeBackendPaymentMethod(payment.paymentMethod, language)}</span>
-                  <span>{formatMoney(payment.amount, locale, currency)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
 
         <p className="mt-6 text-center font-sans text-[10px] text-slate-500">
           {settings?.receiptFooterMessage?.trim() || t.thankYou}

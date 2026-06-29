@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { REALTIME_EVENTS, type OrderResponse, type RealtimeEvent } from '@repo/shared-types';
+import { REALTIME_EVENTS, type RealtimeEvent, type RealtimeOrderDelta } from '@repo/shared-types';
 import { getSocket, getSocketStatus, type SocketStatus } from '@/lib/socket';
 
 type UsePosSocketOptions = {
   restaurantId?: string;
-  onOrderEvent: (event: RealtimeEvent, order: OrderResponse) => void;
+  onOrderEvent: (event: RealtimeEvent, order: RealtimeOrderDelta) => void;
 };
 
 const POS_EVENTS: RealtimeEvent[] = [
@@ -48,7 +48,7 @@ export function usePosSocket({ restaurantId, onOrderEvent }: UsePosSocketOptions
       (event) =>
         [
           event,
-          (order: OrderResponse) => {
+          (order: RealtimeOrderDelta) => {
             onOrderEventRef.current(event, order);
           },
         ] as const,

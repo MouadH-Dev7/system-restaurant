@@ -40,10 +40,6 @@ export function SettingsScreen() {
   const { t, dir } = useI18n();
   const restaurantId = useAppStore((state) => state.restaurantId);
   const setLanguage = useAppStore((state) => state.setLanguage);
-  const setDirection = useAppStore((state) => state.setDirection);
-  const setLocale = useAppStore((state) => state.setLocale);
-  const setDateFormat = useAppStore((state) => state.setDateFormat);
-  const setCurrency = useAppStore((state) => state.setCurrency);
   const [settings, setSettings] = useState(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -68,12 +64,6 @@ export function SettingsScreen() {
         if (rest.language === 'en' || rest.language === 'fr' || rest.language === 'ar') {
           setLanguage(rest.language);
         }
-        if (rest.direction === 'ltr' || rest.direction === 'rtl') {
-          setDirection(rest.direction);
-        }
-        setLocale(rest.locale);
-        setDateFormat(rest.dateFormat);
-        setCurrency(rest.currency);
       } else {
         setSettings((current) => ({ ...current, restaurantId: activeRestaurantId, currency: 'DZD' }));
       }
@@ -194,7 +184,6 @@ export function SettingsScreen() {
           value={settings.currency}
           onChange={(e) => {
             setSettings((s) => ({ ...s, currency: e.target.value }));
-            setCurrency(e.target.value);
           }}
         />
         <input
@@ -228,7 +217,6 @@ export function SettingsScreen() {
           onChange={(e) => {
             const direction = e.target.value as 'ltr' | 'rtl';
             setSettings((s) => ({ ...s, direction }));
-            setDirection(direction);
           }}
         >
           <option value="ltr">{t('settings.ltr')}</option>
@@ -240,7 +228,6 @@ export function SettingsScreen() {
           value={settings.locale}
           onChange={(e) => {
             setSettings((s) => ({ ...s, locale: e.target.value }));
-            setLocale(e.target.value);
           }}
         />
         <input
@@ -249,7 +236,6 @@ export function SettingsScreen() {
           value={settings.dateFormat}
           onChange={(e) => {
             setSettings((s) => ({ ...s, dateFormat: e.target.value }));
-            setDateFormat(e.target.value);
           }}
         />
       </section>

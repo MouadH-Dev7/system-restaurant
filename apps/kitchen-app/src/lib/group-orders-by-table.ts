@@ -17,7 +17,7 @@ export function groupOrdersByTable(orders: OrderResponse[]): TableOrderGroup[] {
   for (const order of orders) {
     const external = isWalkInOrder(order);
     const type = getOrderTypeLabel(order);
-    const groupId = external ? EXTERNAL_ORDER_GROUP_ID : order.tableId;
+    const groupId = external ? EXTERNAL_ORDER_GROUP_ID : (order.tableId ?? 'unknown');
     const existing = groups.get(groupId);
 
     if (existing) {
@@ -38,14 +38,14 @@ export function groupOrdersByTable(orders: OrderResponse[]): TableOrderGroup[] {
     .map((group) => ({
       ...group,
       orders: group.orders.sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        (a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime(),
       ),
     }))
     .sort((a, b) => {
       const firstOrderA = a.orders[0];
       const firstOrderB = b.orders[0];
-      const firstTimeA = firstOrderA ? new Date(firstOrderA.createdAt).getTime() : 0;
-      const firstTimeB = firstOrderB ? new Date(firstOrderB.createdAt).getTime() : 0;
+      const firstTimeA = firstOrderA ? new Date(firstOrderA.createdAt ?? 0).getTime() : 0;
+      const firstTimeB = firstOrderB ? new Date(firstOrderB.createdAt ?? 0).getTime() : 0;
 
       if (firstTimeA !== firstTimeB) {
         return firstTimeA - firstTimeB;

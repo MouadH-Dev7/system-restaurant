@@ -1,4 +1,5 @@
-import type { Language, LocalizedEntity } from '@/types/menu';
+import type { LocalizedEntity } from '@/types/menu';
+import type { Language } from '@repo/i18n';
 
 type Dictionary = {
   brand: string;

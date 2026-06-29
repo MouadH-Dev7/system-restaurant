@@ -56,6 +56,10 @@ export const usePosDataStore = create<PosDataState>((set) => ({
   setSettings: (settings) => set({ settings }),
   upsertOrder: (order) =>
     set((state) => {
+      if (!order.id) {
+        return {};
+      }
+
       const without = state.orders.filter((entry) => entry.id !== order.id);
 
       if (!POS_ACTIVE_STATUSES.has(order.status)) {
@@ -98,13 +102,13 @@ export const usePosDataStore = create<PosDataState>((set) => ({
 }));
 
 export function ordersByStatus(orders: OrderResponse[], status: OrderResponse['status']) {
-  return orders.filter((order) => order.status === status);
+  return orders.filter((order) => order?.status === status);
 }
 
 export function getOrderById(orders: OrderResponse[], orderId: string) {
-  return orders.find((order) => order.id === orderId);
+  return orders.find((order) => order?.id === orderId);
 }
 
 export function getOrderForTable(orders: OrderResponse[], tableId: string) {
-  return orders.find((order) => order.tableId === tableId);
+  return orders.find((order) => order?.tableId === tableId);
 }

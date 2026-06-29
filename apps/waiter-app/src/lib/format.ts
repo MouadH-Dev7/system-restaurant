@@ -15,8 +15,8 @@ function localeForLanguage(language: WaiterLanguage) {
 export function formatMoney(amount: number, language: WaiterLanguage = 'en') {
   return new Intl.NumberFormat(localeForLanguage(language), {
     style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
+    currency: 'DZD',
+    maximumFractionDigits: 0,
   }).format(amount);
 }
 

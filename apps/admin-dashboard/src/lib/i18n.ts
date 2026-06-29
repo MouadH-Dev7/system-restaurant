@@ -1,4 +1,6 @@
-export type AdminLanguage = 'en' | 'fr' | 'ar';
+import type { Language } from '@repo/i18n';
+
+export type AdminLanguage = Language;
 
 type Dictionary = Record<string, Record<AdminLanguage, string>>;
 
@@ -67,6 +69,41 @@ export const dictionary: Dictionary = {
     en: 'Inventory',
     fr: 'Inventaire',
     ar: 'المخزون',
+  },
+  'nav.consumptionLogs': {
+    en: 'Consumption Logs',
+    fr: 'Journaux de consommation',
+    ar: 'سجلات الاستهلاك',
+  },
+  'suppliers.category.Bakery': {
+    en: 'Bakery',
+    fr: 'Boulangerie',
+    ar: 'مخبوزات',
+  },
+  'suppliers.category.Dairy': {
+    en: 'Dairy',
+    fr: 'Produits laitiers',
+    ar: 'ألبان وأجبان',
+  },
+  'suppliers.category.Meat': {
+    en: 'Meat',
+    fr: 'Viandes',
+    ar: 'لحوم',
+  },
+  'suppliers.category.Produce': {
+    en: 'Produce',
+    fr: 'Fruits et Légumes',
+    ar: 'خضار وفواكه',
+  },
+  'suppliers.category.DryGoods': {
+    en: 'Dry Goods',
+    fr: 'Épicerie Sèche',
+    ar: 'مواد جافة',
+  },
+  'nav.suppliers': {
+    en: 'Suppliers',
+    fr: 'Fournisseurs',
+    ar: 'الموردون',
   },
   'nav.customers': {
     en: 'Customers CRM',
@@ -1268,6 +1305,41 @@ export const dictionary: Dictionary = {
     fr: 'Annuler',
     ar: 'إلغاء',
   },
+  'common.delete': {
+    en: 'Delete',
+    fr: 'Supprimer',
+    ar: 'حذف',
+  },
+  'common.create': {
+    en: 'Create',
+    fr: 'Créer',
+    ar: 'إنشاء',
+  },
+  'common.update': {
+    en: 'Update',
+    fr: 'Mettre à jour',
+    ar: 'تحديث',
+  },
+  'common.confirmDelete': {
+    en: 'Confirm Delete',
+    fr: 'Confirmer la suppression',
+    ar: 'تأكيد الحذف',
+  },
+  'common.deleting': {
+    en: 'Deleting...',
+    fr: 'Suppression...',
+    ar: 'جارٍ الحذف...',
+  },
+  'common.noRestaurant': {
+    en: 'No restaurant selected',
+    fr: 'Aucun restaurant sélectionné',
+    ar: 'لم يتم تحديد مطعم',
+  },
+  'common.refresh': {
+    en: 'Refresh',
+    fr: 'Actualiser',
+    ar: 'تحديث',
+  },
   'common.created': {
     en: 'Created',
     fr: 'Créé',
@@ -1322,6 +1394,46 @@ export const dictionary: Dictionary = {
     en: 'Saving...',
     fr: 'Enregistrement...',
     ar: 'جاري الحفظ...',
+  },
+  'common.required': {
+    en: 'Required',
+    fr: 'Requis',
+    ar: 'مطلوب',
+  },
+  'common.invalidEmail': {
+    en: 'Invalid email format',
+    fr: 'Format d\'email invalide',
+    ar: 'صيغة البريد الإلكتروني غير صحيحة',
+  },
+  'common.invalidPhone': {
+    en: 'Invalid phone format',
+    fr: 'Format de téléphone invalide',
+    ar: 'صيغة الهاتف غير صحيحة',
+  },
+  'common.all': {
+    en: 'All',
+    fr: 'Tous',
+    ar: 'الكل',
+  },
+  'common.status': {
+    en: 'Status',
+    fr: 'Statut',
+    ar: 'الحالة',
+  },
+  'common.actions': {
+    en: 'Actions',
+    fr: 'Actions',
+    ar: 'الإجراءات',
+  },
+  'common.edit': {
+    en: 'Edit',
+    fr: 'Modifier',
+    ar: 'تعديل',
+  },
+  'common.invalidNumber': {
+    en: 'Must be a positive number',
+    fr: 'Doit être un nombre positif',
+    ar: 'يجب أن يكون رقماً موجباً',
   },
   'customerTier.new': {
     en: 'New',
@@ -1457,6 +1569,426 @@ export const dictionary: Dictionary = {
     en: 'Unit Price',
     fr: 'Prix unitaire',
     ar: 'سعر الوحدة',
+  },
+  'inventory.noSupplier': {
+    en: 'No supplier',
+    fr: 'Aucun fournisseur',
+    ar: 'بدون مورد',
+  },
+  'inventory.unit.KG': {
+    en: 'Kilogram',
+    fr: 'Kilogramme',
+    ar: 'كيلوغرام',
+  },
+  'inventory.unit.GRAM': {
+    en: 'Gram',
+    fr: 'Gramme',
+    ar: 'غرام',
+  },
+  'inventory.unit.LITER': {
+    en: 'Liter',
+    fr: 'Litre',
+    ar: 'لتر',
+  },
+  'inventory.unit.ML': {
+    en: 'Milliliter',
+    fr: 'Millilitre',
+    ar: 'ميليلتر',
+  },
+  'inventory.unit.PIECE': {
+    en: 'Piece',
+    fr: 'Piece',
+    ar: 'قطعة',
+  },
+  'inventory.unit.PACK': {
+    en: 'Pack',
+    fr: 'Paquet',
+    ar: 'طرد',
+  },
+  'inventory.editItem': {
+    en: 'Edit Inventory Item',
+    fr: "Modifier l'article de stock",
+    ar: 'تعديل عنصر المخزون',
+  },
+  'inventory.editDescription': {
+    en: 'Update stock item details.',
+    fr: "Mettre à jour les détails de l'article de stock.",
+    ar: 'تحديث تفاصيل عنصر المخزون.',
+  },
+  'inventory.deleteConfirm': {
+    en: 'Are you sure you want to delete this inventory item?',
+    fr: 'Êtes-vous sûr de vouloir supprimer cet article de stock ?',
+    ar: 'هل أنت متأكد من حذف عنصر المخزون هذا؟',
+  },
+  'inventory.search': {
+    en: 'Search inventory...',
+    fr: 'Rechercher dans le stock...',
+    ar: 'بحث في المخزون...',
+  },
+  'inventory.noItems': {
+    en: 'No inventory items found.',
+    fr: 'Aucun article de stock trouvé.',
+    ar: 'لم يتم العثور على عناصر مخزون.',
+  },
+  'inventory.delete': {
+    en: 'Delete',
+    fr: 'Supprimer',
+    ar: 'حذف',
+  },
+  'inventory.save': {
+    en: 'Save',
+    fr: 'Enregistrer',
+    ar: 'حفظ',
+  },
+  'inventory.lowStock': {
+    en: 'Low Stock',
+    fr: 'Stock Faible',
+    ar: 'مخزون منخفض',
+  },
+  'inventory.inStock': {
+    en: 'In Stock',
+    fr: 'En Stock',
+    ar: 'متوفر',
+  },
+  'inventory.critical': {
+    en: 'Critical',
+    fr: 'Critique',
+    ar: 'حرج',
+  },
+  'inventory.supplyLogs': {
+    en: 'Supply Logs',
+    fr: 'Journal d\'approvisionnement',
+    ar: 'سجل التوريد',
+  },
+  'inventory.supplyLogsSubtitle': {
+    en: 'View all incoming stock shipments and purchase history.',
+    fr: 'Consultez tous les arrivages de stock et l\'historique des achats.',
+    ar: 'عرض جميع شحنات المخزون الواردة وتاريخ المشتريات.',
+  },
+  'inventory.itemName': {
+    en: 'Item',
+    fr: 'Article',
+    ar: 'المادة',
+  },
+  'inventory.quantityAdded': {
+    en: 'Quantity Added',
+    fr: 'Quantité ajoutée',
+    ar: 'الكمية المضافة',
+  },
+  'inventory.receivedAt': {
+    en: 'Received At',
+    fr: 'Reçu le',
+    ar: 'تاريخ الاستلام',
+  },
+  'inventory.healthy': {
+    en: 'Healthy',
+    fr: 'Sain',
+    ar: 'حالة ممتازة',
+  },
+  'inventory.monitoring': {
+    en: 'Monitoring',
+    fr: 'Surveillance',
+    ar: 'مراقبة',
+  },
+  'inventory.requiresAction': {
+    en: 'Requires Action',
+    fr: 'Nécessite une action',
+    ar: 'يتطلب إجراء',
+  },
+  'inventory.currentFifo': {
+    en: 'Current FIFO',
+    fr: 'FIFO actuel',
+    ar: 'الوارد أولاً',
+  },
+  'inventory.inTransit': {
+    en: 'In Transit',
+    fr: 'En transit',
+    ar: 'قيد النقل',
+  },
+  'inventory.pendingOrders': {
+    en: 'Pending Orders',
+    fr: 'Commandes en attente',
+    ar: 'الطلبات المعلقة',
+  },
+  'inventory.addNewIngredient': {
+    en: 'Add New Ingredient',
+    fr: 'Ajouter un ingrédient',
+    ar: 'إضافة مكون جديد',
+  },
+  'inventory.enterDetails': {
+    en: 'Enter details for the new inventory item.',
+    fr: "Entrez les détails du nouvel article d'inventaire.",
+    ar: 'أدخل تفاصيل عنصر المخزون الجديد.',
+  },
+  'inventory.namePlaceholder': {
+    en: 'e.g. Maldon Sea Salt',
+    fr: 'ex. Sel de Mer Maldon',
+    ar: 'مثال: ملح البحر',
+  },
+  'inventory.basicInformation': {
+    en: 'Basic Information',
+    fr: 'Informations de base',
+    ar: 'المعلومات الأساسية',
+  },
+  'inventory.stockInformation': {
+    en: 'Stock Information',
+    fr: 'Informations sur le stock',
+    ar: 'معلومات المخزون',
+  },
+  'inventory.supplierInformation': {
+    en: 'Supplier Information',
+    fr: 'Informations sur le fournisseur',
+    ar: 'معلومات المورد',
+  },
+  'inventory.minStockInfo': {
+    en: 'Min Stock Level',
+    fr: 'Niveau de stock minimum',
+    ar: 'الحد الأدنى للمخزون',
+  },
+  'inventory.minStockDescription': {
+    en: 'Setting a proper Min Stock Level ensures automated reordering alerts appear on the dashboard when supplies run low during service hours.',
+    fr: "La définition d'un niveau de stock minimum garantit que les alertes de réapprovisionnement automatiques apparaissent sur le tableau de bord lorsque les fournitures s'épuisent pendant les heures de service.",
+    ar: 'يضمن تعيين الحد الأدنى المناسب للمخزون ظهور تنبيهات إعادة الطلب التلقائية على لوحة التحكم عندما تنخفض الإمدادات أثناء ساعات الخدمة.',
+  },
+  'inventory.saveIngredient': {
+    en: 'SAVE INGREDIENT',
+    fr: "ENREGISTRER L'INGRÉDIENT",
+    ar: 'حفظ المكون',
+  },
+  'inventory.updateIngredient': {
+    en: 'Update Ingredient',
+    fr: "Mettre à jour l'ingrédient",
+    ar: 'تحديث المكون',
+  },
+  'inventory.lastUpdated': {
+    en: 'Last Updated',
+    fr: 'Dernière mise à jour',
+    ar: 'آخر تحديث',
+  },
+  'suppliers.title': {
+    en: 'Suppliers',
+    fr: 'Fournisseurs',
+    ar: 'الموردون',
+  },
+  'suppliers.subtitle': {
+    en: 'Manage your supplier directory and contact information.',
+    fr: 'Gerez le repertoire des fournisseurs et les coordonnees.',
+    ar: 'إدارة دليل الموردين ومعلومات الاتصال.',
+  },
+  'suppliers.totalSuppliers': {
+    en: 'Total Suppliers',
+    fr: 'Total fournisseurs',
+    ar: 'إجمالي الموردين',
+  },
+  'suppliers.active': {
+    en: 'Active',
+    fr: 'Actif',
+    ar: 'نشط',
+  },
+  'suppliers.inactive': {
+    en: 'Inactive',
+    fr: 'Inactif',
+    ar: 'غير نشط',
+  },
+  'suppliers.addSupplier': {
+    en: 'Add Supplier',
+    fr: 'Ajouter fournisseur',
+    ar: 'إضافة مورد',
+  },
+  'suppliers.createDescription': {
+    en: 'Add a new supplier to your directory.',
+    fr: 'Ajoutez un nouveau fournisseur au repertoire.',
+    ar: 'إضافة مورد جديد إلى الدليل.',
+  },
+  'suppliers.name': {
+    en: 'Supplier Name',
+    fr: 'Nom du fournisseur',
+    ar: 'اسم المورد',
+  },
+  'suppliers.contactName': {
+    en: 'Contact Name',
+    fr: 'Nom du contact',
+    ar: 'اسم جهة الاتصال',
+  },
+  'suppliers.phone': {
+    en: 'Phone',
+    fr: 'Telephone',
+    ar: 'الهاتف',
+  },
+  'suppliers.email': {
+    en: 'Email',
+    fr: 'E-mail',
+    ar: 'البريد الإلكتروني',
+  },
+  'suppliers.address': {
+    en: 'Address',
+    fr: 'Adresse',
+    ar: 'العنوان',
+  },
+  'suppliers.supplyingCategories': {
+    en: 'Supplying Categories',
+    fr: 'Categories',
+    ar: 'الفئات',
+  },
+  'suppliers.add': {
+    en: 'Add Supplier',
+    fr: 'Ajouter',
+    ar: 'إضافة مورد',
+  },
+  'suppliers.deactivate': {
+    en: 'Deactivate',
+    fr: 'Desactiver',
+    ar: 'تعطيل',
+  },
+  'suppliers.activate': {
+    en: 'Activate',
+    fr: 'Activer',
+    ar: 'تفعيل',
+  },
+  'suppliers.loading': {
+    en: 'Loading suppliers...',
+    fr: 'Chargement des fournisseurs...',
+    ar: 'تحميل الموردين...',
+  },
+  'suppliers.editSupplier': {
+    en: 'Edit Supplier',
+    fr: 'Modifier le fournisseur',
+    ar: 'تعديل المورد',
+  },
+  'suppliers.editDescription': {
+    en: 'Update supplier details.',
+    fr: 'Mettre à jour les coordonnées du fournisseur.',
+    ar: 'تحديث بيانات المورد.',
+  },
+  'suppliers.deleteConfirm': {
+    en: 'Are you sure you want to delete this supplier?',
+    fr: 'Êtes-vous sûr de vouloir supprimer ce fournisseur ?',
+    ar: 'هل أنت متأكد من حذف هذا المورد؟',
+  },
+  'suppliers.search': {
+    en: 'Search by name or phone...',
+    fr: 'Rechercher par nom ou téléphone...',
+    ar: 'بحث بالاسم أو الهاتف...',
+  },
+  'suppliers.noSuppliers': {
+    en: 'No suppliers found.',
+    fr: 'Aucun fournisseur trouvé.',
+    ar: 'لم يتم العثور على موردين.',
+  },
+  'suppliers.save': {
+    en: 'Save',
+    fr: 'Enregistrer',
+    ar: 'حفظ',
+  },
+  'suppliers.categories': {
+    en: 'Categories',
+    fr: 'Catégories',
+    ar: 'الفئات',
+  },
+  'suppliers.addCategory': {
+    en: 'Add Category',
+    fr: 'Ajouter une catégorie',
+    ar: 'إضافة فئة',
+  },
+  'suppliers.categoryName': {
+    en: 'Category Name',
+    fr: 'Nom de la catégorie',
+    ar: 'اسم الفئة',
+  },
+  'suppliers.categoryDeleteConfirm': {
+    en: 'Are you sure you want to delete this category?',
+    fr: 'Êtes-vous sûr de vouloir supprimer cette catégorie ?',
+    ar: 'هل أنت متأكد من حذف هذه الفئة؟',
+  },
+  'suppliers.noCategory': {
+    en: 'No category',
+    fr: 'Aucune catégorie',
+    ar: 'بدون فئة',
+  },
+  'suppliers.manageCategories': {
+    en: 'Manage Categories',
+    fr: 'Gérer les catégories',
+    ar: 'إدارة الفئات',
+  },
+  'suppliers.companyName': {
+    en: 'Company Name',
+    fr: "Nom de l'entreprise",
+    ar: 'اسم الشركة',
+  },
+  'suppliers.contactDetails': {
+    en: 'Contact Details',
+    fr: 'Coordonnées',
+    ar: 'معلومات الاتصال',
+  },
+  'suppliers.logisticsStatus': {
+    en: 'Logistics Status',
+    fr: 'Statut logistique',
+    ar: 'حالة الخدمات اللوجستية',
+  },
+  'suppliers.addNewSupplier': {
+    en: 'Add New Supplier',
+    fr: 'Ajouter un fournisseur',
+    ar: 'إضافة مورد جديد',
+  },
+  'suppliers.registerVendor': {
+    en: 'Register a new vendor in the system.',
+    fr: 'Enregistrez un nouveau fournisseur dans le système.',
+    ar: 'تسجيل مورد جديد في النظام.',
+  },
+  'suppliers.companyInformation': {
+    en: 'Company Information',
+    fr: "Informations sur l'entreprise",
+    ar: 'معلومات الشركة',
+  },
+  'suppliers.primaryContact': {
+    en: 'Primary Contact',
+    fr: 'Contact principal',
+    ar: 'جهة الاتصال الرئيسية',
+  },
+  'suppliers.operationalDetails': {
+    en: 'Operational Details',
+    fr: 'Détails opérationnels',
+    ar: 'التفاصيل التشغيلية',
+  },
+  'suppliers.databaseCategories': {
+    en: 'Database Categories',
+    fr: 'Catégories de la base',
+    ar: 'فئات قاعدة البيانات',
+  },
+  'suppliers.supplierStatus': {
+    en: 'Supplier Status',
+    fr: 'Statut du fournisseur',
+    ar: 'حالة المورد',
+  },
+  'suppliers.statusDescription': {
+    en: 'Set this supplier as active immediately.',
+    fr: 'Activez ce fournisseur immédiatement.',
+    ar: 'تعيين هذا المورد كنشط فوراً.',
+  },
+  'suppliers.createSupplier': {
+    en: 'Create Supplier',
+    fr: 'Créer un fournisseur',
+    ar: 'إنشاء مورد',
+  },
+  'suppliers.all': {
+    en: 'All',
+    fr: 'Tous',
+    ar: 'الكل',
+  },
+  'suppliers.networkStatus': {
+    en: 'Network Operating at High Efficiency',
+    fr: 'Réseau fonctionnant à haute efficacité',
+    ar: 'الشبكة تعمل بكفاءة عالية',
+  },
+  'suppliers.logisticsDescription': {
+    en: 'All primary supply chains report 0 delays in last 24h cycle.',
+    fr: "Toutes les chaînes d'approvisionnement principales signalent 0 retard au cours des dernières 24h.",
+    ar: 'جميع سلاسل التوريد الرئيسية تبلغ عن 0 تأخير في آخر 24 ساعة.',
+  },
+  'suppliers.id': {
+    en: 'ID',
+    fr: 'ID',
+    ar: 'المعرف',
   },
   'menu.createDescription': {
     en: 'Create a new menu item in the database catalog.',
@@ -2157,6 +2689,341 @@ Object.assign(dictionary, {
     ar: 'عنصر',
   },
 
+  // Date presets
+  'logs.today': {
+    en: 'Today',
+    fr: "Aujourd'hui",
+    ar: 'اليوم',
+  },
+  'logs.yesterday': {
+    en: 'Yesterday',
+    fr: 'Hier',
+    ar: 'الأمس',
+  },
+  'logs.thisWeek': {
+    en: 'This Week',
+    fr: 'Cette semaine',
+    ar: 'هذا الأسبوع',
+  },
+  'logs.thisMonth': {
+    en: 'This Month',
+    fr: 'Ce mois',
+    ar: 'هذا الشهر',
+  },
+  'logs.customRange': {
+    en: 'Custom range',
+    fr: 'Plage personnalisée',
+    ar: 'نطاق مخصص',
+  },
+  'logs.fromDate': {
+    en: 'From date',
+    fr: 'Date de début',
+    ar: 'من تاريخ',
+  },
+  'logs.toDate': {
+    en: 'To date',
+    fr: 'Date de fin',
+    ar: 'إلى تاريخ',
+  },
+  'logs.filterByUser': {
+    en: 'Filter by user',
+    fr: 'Filtrer par utilisateur',
+    ar: 'فلترة حسب المستخدم',
+  },
+  'logs.allUsers': {
+    en: 'All users',
+    fr: 'Tous les utilisateurs',
+    ar: 'كل المستخدمين',
+  },
+  // Pagination
+  'logs.previous': {
+    en: 'Previous',
+    fr: 'Précédent',
+    ar: 'السابق',
+  },
+  'logs.next': {
+    en: 'Next',
+    fr: 'Suivant',
+    ar: 'التالي',
+  },
+  'logs.pageInfo': {
+    en: 'Page {current} of {total}',
+    fr: 'Page {current} sur {total}',
+    ar: 'الصفحة {current} من {total}',
+  },
+  'logs.noResults': {
+    en: 'No audit records found for the selected filters.',
+    fr: 'Aucun enregistrement d\'audit trouvé pour les filtres sélectionnés.',
+    ar: 'لم يتم العثور على سجلات تدقيق للفلاتر المحددة.',
+  },
+  // Role-specific stats
+  'logs.cashierStats': {
+    en: 'Cashier Statistics',
+    fr: 'Statistiques du caissier',
+    ar: 'إحصائيات الكاشير',
+  },
+  'logs.waiterStats': {
+    en: 'Waiter Statistics',
+    fr: 'Statistiques du serveur',
+    ar: 'إحصائيات النادل',
+  },
+  'logs.chefStats': {
+    en: 'Chef Statistics',
+    fr: 'Statistiques du chef',
+    ar: 'إحصائيات الشيف',
+  },
+  'logs.takeawayOrders': {
+    en: 'Takeaway orders',
+    fr: 'Commandes à emporter',
+    ar: 'طلبات سفري',
+  },
+  'logs.totalCashReceived': {
+    en: 'Total cash received',
+    fr: 'Total encaissé en espèces',
+    ar: 'إجمالي المبالغ النقدية المستلمة',
+  },
+  'logs.totalCardReceived': {
+    en: 'Total card received',
+    fr: 'Total encaissé par carte',
+    ar: 'إجمالي المبالغ البطاقية المستلمة',
+  },
+  'logs.ordersCreated': {
+    en: 'Orders created',
+    fr: 'Commandes créées',
+    ar: 'الطلبات المنشأة',
+  },
+  'logs.ordersDelivered': {
+    en: 'Orders delivered',
+    fr: 'Commandes livrées',
+    ar: 'الطلبات المسلمة',
+  },
+  'logs.dishesPrepared': {
+    en: 'Dishes prepared',
+    fr: 'Plats préparés',
+    ar: 'الأطباق المعدة',
+  },
+  'logs.ordersPrepared': {
+    en: 'Orders prepared',
+    fr: 'Commandes préparées',
+    ar: 'الطلبات المحضرة',
+  },
+  // PDF export
+  'logs.exportPdf': {
+    en: 'Export PDF',
+    fr: 'Exporter PDF',
+    ar: 'تصدير PDF',
+  },
+  'logs.exportingPdf': {
+    en: 'Generating PDF...',
+    fr: 'Génération du PDF...',
+    ar: 'جاري إنشاء PDF...',
+  },
+  'logs.exportCsv': {
+    en: 'Export CSV',
+    fr: 'Exporter CSV',
+    ar: 'تصدير CSV',
+  },
+  'logs.pdfTitle': {
+    en: 'Audit Logs Report',
+    fr: 'Rapport des journaux d\'audit',
+    ar: 'تقرير سجلات التدقيق',
+  },
+  'logs.pdfSubtitle': {
+    en: 'Comprehensive audit trail report',
+    fr: 'Rapport complet de la piste d\'audit',
+    ar: 'تقرير شامل لمسار التدقيق',
+  },
+  'logs.pdfReportLanguage': {
+    en: 'Report language',
+    fr: 'Langue du rapport',
+    ar: 'لغة التقرير',
+  },
+  'logs.pdfReportType': {
+    en: 'Report type',
+    fr: 'Type de rapport',
+    ar: 'نوع التقرير',
+  },
+  'logs.pdfSummaryReport': {
+    en: 'Summary Report',
+    fr: 'Rapport sommaire',
+    ar: 'تقرير مختصر',
+  },
+  'logs.pdfSummaryDesc': {
+    en: 'Statistics and role-specific summary only',
+    fr: 'Statistiques et résumé par rôle uniquement',
+    ar: 'الإحصائيات والملخص حسب الدور فقط',
+  },
+  'logs.pdfDetailedReport': {
+    en: 'Detailed Report',
+    fr: 'Rapport détaillé',
+    ar: 'تقرير تفصيلي',
+  },
+  'logs.pdfDetailedDesc': {
+    en: 'Full log table with all translated details',
+    fr: 'Tableau complet des journaux avec tous les détails traduits',
+    ar: 'جدول كامل للسجلات مع جميع التفاصيل المترجمة',
+  },
+  'logs.pdfGenerate': {
+    en: 'Generate PDF',
+    fr: 'Générer le PDF',
+    ar: 'إنشاء PDF',
+  },
+  'logs.pdfCancel': {
+    en: 'Cancel',
+    fr: 'Annuler',
+    ar: 'إلغاء',
+  },
+  'logs.pdfTotalRecords': {
+    en: 'Total records',
+    fr: 'Total des enregistrements',
+    ar: 'إجمالي السجلات',
+  },
+  'logs.pdfWaiterCashierActions': {
+    en: 'Waiter & cashier actions',
+    fr: 'Actions serveur et caissier',
+    ar: 'عمليات النادل والكاشير',
+  },
+  'logs.pdfRecordsForReview': {
+    en: 'Records for review',
+    fr: 'Enregistrements à vérifier',
+    ar: 'سجلات للمراجعة',
+  },
+  'logs.pdfEmployeeTarget': {
+    en: 'Employee',
+    fr: 'Employé',
+    ar: 'الموظف',
+  },
+  'logs.pdfPeriod': {
+    en: 'Period',
+    fr: 'Période',
+    ar: 'الفترة',
+  },
+  'logs.pdfGeneratedAt': {
+    en: 'Generated on',
+    fr: 'Généré le',
+    ar: 'تم التوليد في',
+  },
+  'logs.pdfAuthError': {
+    en: 'Authentication session expired. Please sign in again.',
+    fr: 'Session d\'authentification expirée. Veuillez vous reconnecter.',
+    ar: 'انتهت جلسة المصادقة. الرجاء تسجيل الدخول مرة أخرى.',
+  },
+  'logs.pdfEmployeeFilter': {
+    en: 'Filtered by employee',
+    fr: 'Filtré par employé',
+    ar: 'مصفى حسب الموظف',
+  },
+  'logs.pdfTotalCash': {
+    en: 'Total cash',
+    fr: 'Total espèces',
+    ar: 'إجمالي النقدي',
+  },
+  'logs.pdfTotalCard': {
+    en: 'Total card',
+    fr: 'Total carte',
+    ar: 'إجمالي البطاقي',
+  },
+  'logs.pdfLangAr': {
+    en: 'العربية',
+    fr: 'العربية',
+    ar: 'العربية',
+  },
+  'logs.pdfLangFr': {
+    en: 'Français',
+    fr: 'Français',
+    ar: 'Français',
+  },
+  'logs.pdfLangEn': {
+    en: 'English',
+    fr: 'English',
+    ar: 'English',
+  },
+  'logs.csv.createdAt': {
+    en: 'Created At',
+    fr: 'Date de création',
+    ar: 'تاريخ الإنشاء',
+  },
+  'logs.csv.userName': {
+    en: 'User Name',
+    fr: "Nom d'utilisateur",
+    ar: 'اسم المستخدم',
+  },
+  'logs.csv.role': {
+    en: 'Role',
+    fr: 'Rôle',
+    ar: 'الدور',
+  },
+  'logs.csv.action': {
+    en: 'Action',
+    fr: 'Action',
+    ar: 'الإجراء',
+  },
+  'logs.csv.module': {
+    en: 'Module',
+    fr: 'Module',
+    ar: 'الوحدة',
+  },
+  'logs.csv.status': {
+    en: 'Status',
+    fr: 'Statut',
+    ar: 'الحالة',
+  },
+  'logs.csv.orderId': {
+    en: 'Order ID',
+    fr: 'ID commande',
+    ar: 'رقم الطلب',
+  },
+  'logs.csv.dailyOrderNumber': {
+    en: 'Daily Order #',
+    fr: 'N° commande journalier',
+    ar: 'رقم الطلب اليومي',
+  },
+  'logs.csv.tableNumber': {
+    en: 'Table #',
+    fr: 'N° table',
+    ar: 'رقم الطاولة',
+  },
+  'logs.csv.orderType': {
+    en: 'Order Type',
+    fr: 'Type de commande',
+    ar: 'نوع الطلب',
+  },
+  'logs.csv.previousStatus': {
+    en: 'Previous Status',
+    fr: 'Statut précédent',
+    ar: 'الحالة السابقة',
+  },
+  'logs.csv.nextStatus': {
+    en: 'Next Status',
+    fr: 'Statut suivant',
+    ar: 'الحالة التالية',
+  },
+  'logs.csv.previousTotal': {
+    en: 'Previous Total',
+    fr: 'Total précédent',
+    ar: 'الإجمالي السابق',
+  },
+  'logs.csv.nextTotal': {
+    en: 'Next Total',
+    fr: 'Total suivant',
+    ar: 'الإجمالي التالي',
+  },
+  'logs.csv.totalDelta': {
+    en: 'Total Delta',
+    fr: 'Écart total',
+    ar: 'فرق الإجمالي',
+  },
+  'logs.csv.riskFlags': {
+    en: 'Risk Flags',
+    fr: 'Drapeaux de risque',
+    ar: 'علامات المخاطر',
+  },
+  'logs.csv.paymentMethod': {
+    en: 'Payment Method',
+    fr: 'Moyen de paiement',
+    ar: 'طريقة الدفع',
+  },
+
   'employeeRisk.title': {
     en: 'Employee Risk Profile',
     fr: 'Profil de risque des employes',
@@ -2673,6 +3540,51 @@ Object.assign(dictionary, {
     fr: 'La commande a ete reglee via les paiements',
     ar: 'تمت تسوية الطلب عبر المدفوعات',
   },
+  'employeeRisk.editSource': {
+    en: 'Edit Source',
+    fr: "Source d'édition",
+    ar: 'مصدر التعديل',
+  },
+  'employeeRisk.editSourceHistory': {
+    en: 'Order History',
+    fr: "Historique des commandes",
+    ar: 'سجل الطلبات',
+  },
+  'employeeRisk.editSourceCheckout': {
+    en: 'Checkout Page',
+    fr: 'Page de paiement',
+    ar: 'صفحة الدفع',
+  },
+  'employeeRisk.editSourceTables': {
+    en: 'Table Screen',
+    fr: "Écran de table",
+    ar: 'شاشة الطاولة',
+  },
+  'employeeRisk.editSourceBoard': {
+    en: 'Order Board',
+    fr: 'Tableau des commandes',
+    ar: 'لوحة الطلبات',
+  },
+  'employeeRisk.reason.posHistoryAr': {
+    en: 'Order modified from POS history',
+    fr: 'Commande modifiée depuis l\'historique POS',
+    ar: 'تم تعديل الطلب من سجل الطلبات',
+  },
+  'employeeRisk.reason.paymentScreenAr': {
+    en: 'Order modified from payment screen',
+    fr: 'Commande modifiée depuis la page de paiement',
+    ar: 'تم تعديل الطلب من صفحة الدفع',
+  },
+  'employeeRisk.reason.orderBoardAr': {
+    en: 'Order modified from order board',
+    fr: 'Commande modifiée depuis le tableau des commandes',
+    ar: 'تم تعديل الطلب من لوحة الطلبات',
+  },
+  'employeeRisk.reason.tableScreenAr': {
+    en: 'Order modified from table screen',
+    fr: 'Commande modifiée depuis l\'écran de table',
+    ar: 'تم تعديل الطلب من شاشة الطاولة',
+  },
   'employeeRisk.createdAtLabel': {
     en: 'Ordered at',
     fr: 'Commande creee a',
@@ -2803,6 +3715,16 @@ Object.assign(dictionary, {
     en: 'Rejected',
     fr: 'Rejete',
     ar: 'مرفوض',
+  },
+  'status.active': {
+    en: 'Active',
+    fr: 'Actif',
+    ar: 'نشط',
+  },
+  'status.inactive': {
+    en: 'Inactive',
+    fr: 'Inactif',
+    ar: 'غير نشط',
   },
   'menu.createMenu': {
     en: 'Create Menu',
@@ -3318,6 +4240,462 @@ Object.assign(dictionary, {
     en: 'Back to groups',
     fr: 'Retour aux groupes',
     ar: 'عودة إلى المجموعات',
+  },
+
+  'networks.title': {
+    en: 'Network Settings',
+    fr: 'Paramètres réseau',
+    ar: 'إعدادات الشبكة',
+  },
+  'networks.subtitle': {
+    en: 'Manage local network links for all restaurant screens.',
+    fr: 'Gérez les liens réseau locaux pour tous les écrans du restaurant.',
+    ar: 'إدارة روابط الشبكة المحلية لجميع شاشات المطعم.',
+  },
+  'networks.refresh': {
+    en: 'Refresh current network',
+    fr: 'Actualiser le réseau actuel',
+    ar: 'تحديث الشبكة الحالية',
+  },
+  'networks.infoTitle': {
+    en: 'Network Info',
+    fr: 'Informations réseau',
+    ar: 'معلومات الشبكة',
+  },
+  'networks.infoSubtitle': {
+    en: 'When the network changes, refresh to rebuild all links using the new IP address.',
+    fr: 'Si le réseau change, actualisez pour reconstruire tous les liens avec la nouvelle IP.',
+    ar: 'عند تغيير الشبكة اضغط تحديث لتتغير كل الروابط تلقائياً حسب IP الجديد.',
+  },
+  'networks.loading': {
+    en: 'Loading network info...',
+    fr: 'Chargement des informations réseau...',
+    ar: 'جارٍ تحميل معلومات الشبكة...',
+  },
+  'networks.serverIp': {
+    en: 'Server IP',
+    fr: 'IP du serveur',
+    ar: 'IP الخادم',
+  },
+  'networks.hostname': {
+    en: 'Hostname',
+    fr: "Nom d'hôte",
+    ar: 'اسم المضيف',
+  },
+  'networks.localDomain': {
+    en: 'Local Domain',
+    fr: 'Domaine local',
+    ar: 'النطاق المحلي',
+  },
+  'networks.previousIp': {
+    en: 'Previous IP',
+    fr: 'IP précédente',
+    ar: 'IP السابق',
+  },
+  'networks.notFound': {
+    en: 'Not Found',
+    fr: 'Introuvable',
+    ar: 'غير موجود',
+  },
+  'networks.linkMode': {
+    en: 'Link Mode',
+    fr: 'Mode des liens',
+    ar: 'وضع الروابط',
+  },
+  'networks.autoIp': {
+    en: 'Dynamic LAN IP',
+    fr: 'IP locale dynamique',
+    ar: 'IP محلي ديناميكي',
+  },
+  'networks.autoHostname': {
+    en: 'Hostname .local',
+    fr: "Nom d'hôte .local",
+    ar: 'اسم مضيف .local',
+  },
+  'networks.customMode': {
+    en: 'Custom Host',
+    fr: 'Hôte personnalisé',
+    ar: 'مضيف مخصص',
+  },
+  'networks.customHost': {
+    en: 'Custom Host',
+    fr: 'Hôte personnalisé',
+    ar: 'المضيف المخصص',
+  },
+  'networks.resolvedHost': {
+    en: 'Resolved Host',
+    fr: 'Hôte retenu',
+    ar: 'المضيف المعتمد',
+  },
+  'networks.linksTitle': {
+    en: 'Screen Links',
+    fr: 'Liens des écrans',
+    ar: 'روابط الشاشات',
+  },
+  'networks.linksSubtitle': {
+    en: 'These links change based on the current network IP or the host you choose.',
+    fr: 'Ces liens changent selon l\'IP actuelle du réseau ou l\'hôte choisi.',
+    ar: 'هذه الروابط تتغير حسب IP الشبكة الحالية أو حسب المضيف الذي تختاره.',
+  },
+  'networks.appCustomer': {
+    en: 'Customer App',
+    fr: 'Écran client',
+    ar: 'واجهة الزبون',
+  },
+  'networks.appPos': {
+    en: 'POS',
+    fr: 'Écran POS',
+    ar: 'واجهة الكاشير',
+  },
+  'networks.appKitchen': {
+    en: 'Kitchen',
+    fr: 'Écran cuisine',
+    ar: 'واجهة المطبخ',
+  },
+  'networks.appAdmin': {
+    en: 'Admin',
+    fr: 'Écran admin',
+    ar: 'واجهة الأدمن',
+  },
+  'networks.appWaiter': {
+    en: 'Waiter',
+    fr: 'Écran serveur',
+    ar: 'واجهة النادل',
+  },
+  'networks.appBackend': {
+    en: 'Backend',
+    fr: 'Backend',
+    ar: 'الباكند',
+  },
+  'consumptionLogs.title': {
+    en: 'Consumption Logs',
+    fr: 'Suivi de consommation',
+    ar: 'سجلات الاستهلاك',
+  },
+  'consumptionLogs.subtitle': {
+    en: 'Live audit of inventory usage from every paid order',
+    fr: "Audit en direct de l'utilisation des stocks à partir de chaque commande payée",
+    ar: 'تدقيق مباشر لاستخدام المخزون من كل طلب مدفوع',
+  },
+  'consumptionLogs.exportCsv': {
+    en: 'Export CSV',
+    fr: 'Exporter CSV',
+    ar: 'تصدير CSV',
+  },
+  'consumptionLogs.refresh': {
+    en: 'Refresh',
+    fr: 'Actualiser',
+    ar: 'تحديث',
+  },
+  'consumptionLogs.filter': {
+    en: 'Filter',
+    fr: 'Filtrer',
+    ar: 'تصفية',
+  },
+  'consumptionLogs.item': {
+    en: 'Item',
+    fr: 'Article',
+    ar: 'المادة',
+  },
+  'consumptionLogs.allItems': {
+    en: 'All Items',
+    fr: 'Tous les articles',
+    ar: 'جميع المواد',
+  },
+  'consumptionLogs.type': {
+    en: 'Type',
+    fr: 'Type',
+    ar: 'النوع',
+  },
+  'consumptionLogs.allTypes': {
+    en: 'All Types',
+    fr: 'Tous les types',
+    ar: 'جميع الأنواع',
+  },
+  'consumptionLogs.auto': {
+    en: 'Auto',
+    fr: 'Auto',
+    ar: 'تلقائي',
+  },
+  'consumptionLogs.manual': {
+    en: 'Manual',
+    fr: 'Manuel',
+    ar: 'يدوي',
+  },
+  'consumptionLogs.recordsFound': {
+    en: '{count} records found',
+    fr: '{count} enregistrements trouvés',
+    ar: 'تم العثور على {count} سجل',
+  },
+  'consumptionLogs.loading': {
+    en: 'Loading...',
+    fr: 'Chargement...',
+    ar: 'تحميل...',
+  },
+  'consumptionLogs.empty': {
+    en: 'No consumption records yet',
+    fr: 'Aucun enregistrement de consommation pour le moment',
+    ar: 'لا توجد سجلات استهلاك بعد',
+  },
+  'consumptionLogs.qtyUsed': {
+    en: 'Qty Used',
+    fr: 'Qté utilisée',
+    ar: 'الكمية المستخدمة',
+  },
+  'consumptionLogs.orderRef': {
+    en: 'Order Ref',
+    fr: 'Réf. commande',
+    ar: 'رقم الطلب',
+  },
+  'consumptionLogs.date': {
+    en: 'Date',
+    fr: 'Date',
+    ar: 'التاريخ',
+  },
+  'consumptionLogs.consumptionDate': {
+    en: 'Consumption Date',
+    fr: 'Date de consommation',
+    ar: 'تاريخ الاستهلاك',
+  },
+  'consumptionLogs.deductedQty': {
+    en: 'Deducted Quantity',
+    fr: 'Quantité déduite',
+    ar: 'الكمية المخصومة',
+  },
+  'consumptionLogs.consumptionType': {
+    en: 'Consumption Type',
+    fr: 'Type de déduction',
+    ar: 'نوع الاستهلاك',
+  },
+  'consumptionLogs.autoDeduction': {
+    en: 'Auto Deduction',
+    fr: 'Déduction automatique',
+    ar: 'خصم تلقائي',
+  },
+  'consumptionLogs.csvHeaders': {
+    en: 'Item,Quantity Used,Type,Order #,Date',
+    fr: 'Article,Quantité utilisée,Type,N° Commande,Date',
+    ar: 'المادة,الكمية المستخدمة,النوع,رقم الطلب,التاريخ',
+  },
+  'consumptionLogs.exportPdf': {
+    en: 'Export Daily Report (PDF)',
+    fr: 'Exporter le rapport quotidien (PDF)',
+    ar: 'تصدير التقرير اليومي (PDF)',
+  },
+  'consumptionLogs.exportingPdf': {
+    en: 'Generating PDF...',
+    fr: 'Génération du PDF...',
+    ar: 'جاري إنشاء PDF...',
+  },
+  'consumptionLogs.dateRange': {
+    en: 'Date Range',
+    fr: 'Période',
+    ar: 'نطاق التاريخ',
+  },
+  'consumptionLogs.today': {
+    en: 'Today',
+    fr: "Aujourd'hui",
+    ar: 'اليوم',
+  },
+  'consumptionLogs.yesterday': {
+    en: 'Yesterday',
+    fr: 'Hier',
+    ar: 'الأمس',
+  },
+  'consumptionLogs.last7Days': {
+    en: 'Last 7 Days',
+    fr: '7 derniers jours',
+    ar: 'آخر 7 أيام',
+  },
+  'consumptionLogs.customRange': {
+    en: 'Custom Range',
+    fr: 'Plage personnalisée',
+    ar: 'نطاق مخصص',
+  },
+  'consumptionLogs.fromDate': {
+    en: 'From Date',
+    fr: 'Date de début',
+    ar: 'من تاريخ',
+  },
+  'consumptionLogs.toDate': {
+    en: 'To Date',
+    fr: 'Date de fin',
+    ar: 'إلى تاريخ',
+  },
+  'consumptionLogs.orderType': {
+    en: 'Order Type',
+    fr: 'Type de commande',
+    ar: 'نوع الطلب',
+  },
+  'consumptionLogs.allOrderTypes': {
+    en: 'All Types',
+    fr: 'Tous les types',
+    ar: 'جميع الأنواع',
+  },
+  'consumptionLogs.dineIn': {
+    en: 'Dine In',
+    fr: 'Sur place',
+    ar: 'صالة',
+  },
+  'consumptionLogs.takeaway': {
+    en: 'Take Away',
+    fr: 'À emporter',
+    ar: 'سفري',
+  },
+  'consumptionLogs.delivery': {
+    en: 'Delivery',
+    fr: 'Livraison',
+    ar: 'توصيل',
+  },
+  'consumptionLogs.table': {
+    en: 'Table',
+    fr: 'Table',
+    ar: 'طاولة',
+  },
+  'consumptionLogs.unit': {
+    en: 'Unit',
+    fr: 'Unité',
+    ar: 'الوحدة',
+  },
+  'consumptionLogs.orderNumber': {
+    en: 'Order #',
+    fr: 'N° commande',
+    ar: 'رقم الطلب',
+  },
+  'consumptionLogs.orderInfo': {
+    en: 'Order Info',
+    fr: 'Infos commande',
+    ar: 'معلومات الطلب',
+  },
+  'consumptionLogs.pdfTitle': {
+    en: 'Daily Consumption Report',
+    fr: 'Rapport quotidien de consommation',
+    ar: 'تقرير الاستهلاك اليومي',
+  },
+  'consumptionLogs.pdfSubtitle': {
+    en: 'Detailed inventory usage from all prepared orders',
+    fr: "Utilisation détaillée des stocks de toutes les commandes préparées",
+    ar: 'استخدام المخزون المفصل من جميع الطلبات المحضرة',
+  },
+  'consumptionLogs.totalItems': {
+    en: 'Total Items Consumed',
+    fr: 'Total des articles consommés',
+    ar: 'إجمالي المواد المستهلكة',
+  },
+  'consumptionLogs.totalQuantity': {
+    en: 'Total Quantity',
+    fr: 'Quantité totale',
+    ar: 'الكمية الإجمالية',
+  },
+  'consumptionLogs.noOrdersYet': {
+    en: 'No consumption records found for the selected filters',
+    fr: 'Aucun enregistrement de consommation trouvé pour les filtres sélectionnés',
+    ar: 'لم يتم العثور على سجلات استهلاك للفلاتر المحددة',
+  },
+  'consumptionLogs.dineInTable': {
+    en: 'Table {name}',
+    fr: 'Table {name}',
+    ar: 'طاولة {name}',
+  },
+  'nav.recipeMapper': {
+    en: 'Recipe & Modifiers',
+    fr: 'Recettes et modificateurs',
+    ar: 'الوصفات والمعدلات',
+  },
+  'recipeMapper.title': {
+    en: 'Recipe & Modifiers Mapper',
+    fr: 'Gestionnaire de recettes et modificateurs',
+    ar: 'مدير الوصفات والمعدلات',
+  },
+  'recipeMapper.subtitle': {
+    en: 'Manage ingredient requirements for menu items and their modifiers',
+    fr: "Gérez les ingrédients requis pour les articles du menu et leurs modificateurs",
+    ar: 'إدارة المكونات المطلوبة لعناصر القائمة ومعدلاتها',
+  },
+  'recipeMapper.selectMenuItem': {
+    en: 'Select a menu item to manage its recipe and modifiers',
+    fr: 'Sélectionnez un article du menu pour gérer sa recette et ses modificateurs',
+    ar: 'اختر عنصر قائمة لإدارة وصفتها ومعدلاتها',
+  },
+  'recipeMapper.recipe': {
+    en: 'Recipe',
+    fr: 'Recette',
+    ar: 'الوصفة',
+  },
+  'recipeMapper.modifiers': {
+    en: 'Modifiers',
+    fr: 'Modificateurs',
+    ar: 'المعدلات',
+  },
+  'recipeMapper.ingredients': {
+    en: 'Ingredients',
+    fr: 'Ingrédients',
+    ar: 'المكونات',
+  },
+  'recipeMapper.addIngredient': {
+    en: 'Add Ingredient',
+    fr: 'Ajouter un ingrédient',
+    ar: 'إضافة مكون',
+  },
+  'recipeMapper.editIngredient': {
+    en: 'Edit Ingredient',
+    fr: 'Modifier l\'ingrédient',
+    ar: 'تعديل المكون',
+  },
+  'recipeMapper.noIngredients': {
+    en: 'No ingredients defined for this item',
+    fr: 'Aucun ingrédient défini pour cet article',
+    ar: 'لا توجد مكونات محددة لهذا العنصر',
+  },
+  'recipeMapper.noModifierIngredients': {
+    en: 'No ingredients defined for this modifier option',
+    fr: 'Aucun ingrédient défini pour cette option de modificateur',
+    ar: 'لا توجد مكونات محددة لخيار المعدل هذا',
+  },
+  'recipeMapper.noModifiers': {
+    en: 'No modifier groups defined for this item',
+    fr: 'Aucun groupe de modificateurs défini pour cet article',
+    ar: 'لا توجد مجموعات معدلات محددة لهذا العنصر',
+  },
+  'recipeMapper.quantity': {
+    en: 'Quantity Required',
+    fr: 'Quantité requise',
+    ar: 'الكمية المطلوبة',
+  },
+  'recipeMapper.inventoryItem': {
+    en: 'Inventory Item',
+    fr: 'Article d\'inventaire',
+    ar: 'عنصر المخزون',
+  },
+  'recipeMapper.selectInventoryItem': {
+    en: 'Select an inventory item',
+    fr: 'Sélectionnez un article d\'inventaire',
+    ar: 'اختر عنصر مخزون',
+  },
+  'recipeMapper.noMenus': {
+    en: 'No menus found',
+    fr: 'Aucun menu trouvé',
+    ar: 'لم يتم العثور على قوائم',
+  },
+  'recipeMapper.searchMenus': {
+    en: 'Search menus...',
+    fr: 'Rechercher des menus...',
+    ar: 'البحث عن القوائم...',
+  },
+  'recipeMapper.saveError': {
+    en: 'Failed to save ingredient',
+    fr: 'Échec de l\'enregistrement de l\'ingrédient',
+    ar: 'فشل حفظ المكون',
+  },
+  'recipeMapper.loadError': {
+    en: 'Failed to load data',
+    fr: 'Échec du chargement des données',
+    ar: 'فشل تحميل البيانات',
+  },
+  'recipeMapper.deleteConfirm': {
+    en: 'Are you sure you want to remove this ingredient?',
+    fr: 'Êtes-vous sûr de vouloir supprimer cet ingrédient ?',
+    ar: 'هل أنت متأكد من إزالة هذا المكون؟',
   },
 });
 

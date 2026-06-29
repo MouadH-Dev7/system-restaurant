@@ -7,8 +7,13 @@ import {
   type UpdateTableInput,
 } from '@repo/shared-types';
 import { http } from '@/lib/http';
+import { STORAGE_KEYS } from '@/lib/constants';
 
-const CUSTOMER_APP_HOST_KEY = 'restaurant:customer-app-host';
+const CUSTOMER_APP_PORT = process.env.NEXT_PUBLIC_CUSTOMER_APP_PORT ?? '3001';
+
+function customerAppOriginFor(hostname: string) {
+  return `${window.location.protocol}//${hostname}:${CUSTOMER_APP_PORT}`;
+}
 
 function normalizeCustomerAppOrigin(value: string) {
   const trimmed = value.trim().replace(/\/$/, '');
@@ -20,7 +25,7 @@ function normalizeCustomerAppOrigin(value: string) {
   try {
     const parsed = new URL(trimmed.includes('://') ? trimmed : `http://${trimmed}`);
 
-    return `${parsed.protocol}//${parsed.hostname}:3001`;
+    return `${parsed.protocol}//${parsed.hostname}:${CUSTOMER_APP_PORT}`;
   } catch {
     return undefined;
   }
@@ -31,12 +36,12 @@ function customerAppOriginHeader() {
     return undefined;
   }
 
-  const configuredHost = window.localStorage.getItem(CUSTOMER_APP_HOST_KEY);
+  const configuredHost = window.localStorage.getItem(STORAGE_KEYS.CUSTOMER_APP_HOST);
 
   if (configuredHost === 'AUTO_HOSTNAME') {
     const localDomain = window.localStorage.getItem('restaurant:local-domain');
     if (localDomain) {
-      return `${window.location.protocol}//${localDomain}:3001`;
+      return customerAppOriginFor(localDomain);
     }
   }
 
@@ -44,7 +49,7 @@ function customerAppOriginHeader() {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return undefined;
     }
-    return `${window.location.protocol}//${window.location.hostname}:3001`;
+    return customerAppOriginFor(window.location.hostname);
   }
 
   const configuredOrigin = normalizeCustomerAppOrigin(configuredHost);
@@ -56,7 +61,7 @@ function customerAppOriginHeader() {
     return undefined;
   }
 
-  return `${window.location.protocol}//${window.location.hostname}:3001`;
+  return customerAppOriginFor(window.location.hostname);
 }
 
 function tableRequestConfig() {

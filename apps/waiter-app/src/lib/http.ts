@@ -2,6 +2,7 @@ import axios, {
   AxiosError,
   type InternalAxiosRequestConfig,
 } from 'axios';
+import { CSRF_CONFIG } from '@repo/shared-types';
 import { useAuthStore } from '@/auth/store';
 import type { AuthSession } from '@/auth/types';
 
@@ -15,11 +16,13 @@ const REQUEST_TIMEOUT_MS = 12_000;
 export const http = axios.create({
   baseURL,
   timeout: REQUEST_TIMEOUT_MS,
+  ...CSRF_CONFIG,
 });
 
 const refreshClient = axios.create({
   baseURL,
   timeout: REQUEST_TIMEOUT_MS,
+  ...CSRF_CONFIG,
 });
 
 let interceptorsReady = false;

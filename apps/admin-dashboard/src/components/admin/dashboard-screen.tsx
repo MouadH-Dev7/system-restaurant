@@ -1,14 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import type { BusyHourDTO, DashboardAnalyticsDTO, RevenueChartResponse } from '@repo/shared-types';
+import { useMemo, useState } from 'react';
+import type { BusyHourDTO } from '@repo/shared-types';
 import { CalendarDays, Download } from 'lucide-react';
-import { getApiErrorMessage } from '@/lib/api-error';
 import { useI18n } from '@/hooks/use-i18n';
-import { getRestaurantDashboardAnalytics, getRevenueChart } from '@/services/analytics.service';
-import { useAppStore } from '@/store/app.store';
-
-type RevenuePeriod = 'daily' | 'weekly' | 'monthly';
+import { useDashboardAnalytics, useRevenueChart, type RevenuePeriod } from '@/hooks/use-admin-queries';
 
 function busyHourMax(hours: BusyHourDTO[]) {
   return Math.max(...hours.map((hour) => hour.orders), 1);
@@ -16,55 +12,9 @@ function busyHourMax(hours: BusyHourDTO[]) {
 
 export function DashboardScreen() {
   const { t, formatCurrency, formatNumber, statusLabel, language } = useI18n();
-  const restaurantId = useAppStore((state) => state.restaurantId);
-  const [dashboard, setDashboard] = useState<DashboardAnalyticsDTO | null>(null);
-  const [revenue, setRevenue] = useState<RevenueChartResponse | null>(null);
   const [period, setPeriod] = useState<RevenuePeriod>('daily');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      if (!restaurantId) {
-        setDashboard(null);
-        setRevenue(null);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-        const [dashboardData, revenueData] = await Promise.all([
-          getRestaurantDashboardAnalytics(restaurantId),
-          getRevenueChart(period, restaurantId),
-        ]);
-
-        if (!active) {
-          return;
-        }
-
-        setDashboard(dashboardData);
-        setRevenue(revenueData);
-      } catch (nextError) {
-        if (active) {
-          setError(getApiErrorMessage(nextError, t('analytics.title')));
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void load();
-
-    return () => {
-      active = false;
-    };
-  }, [period, restaurantId, t]);
+  const { data: dashboard, isLoading: loading, error } = useDashboardAnalytics();
+  const { data: revenue } = useRevenueChart(period);
 
   const statCards = useMemo(() => {
     if (!dashboard) {
@@ -100,7 +50,11 @@ export function DashboardScreen() {
     ];
   }, [dashboard, formatCurrency, formatNumber, t]);
 
-  const chartPoints = revenue?.datasets[0]?.data ?? [];
+  const chartMeta = useMemo(() => {
+    const points = revenue?.datasets[0]?.data ?? [];
+    return { points, max: Math.max(...points, 1) };
+  }, [revenue]);
+
   const localizedLabels = useMemo(() => {
     const formatter = new Intl.DateTimeFormat(
       language === 'ar' ? 'ar-DZ' : language === 'fr' ? 'fr-FR' : 'en-US',
@@ -116,8 +70,11 @@ export function DashboardScreen() {
       return label;
     });
   }, [language, revenue?.labels]);
-  const maxChartValue = Math.max(...chartPoints, 1);
-  const busyMax = busyHourMax(dashboard?.busyHours ?? []);
+
+  const busyMax = useMemo(
+    () => busyHourMax(dashboard?.busyHours ?? []),
+    [dashboard?.busyHours],
+  );
 
   return (
     <>
@@ -145,7 +102,7 @@ export function DashboardScreen() {
         </div>
       </section>
 
-      {error ? <div className="panel error-banner">{error}</div> : null}
+      {error ? <div className="panel error-banner">{(error as Error)?.message ?? t('analytics.title')}</div> : null}
 
       <section className="stat-grid">
         {loading && statCards.length === 0
@@ -203,11 +160,11 @@ export function DashboardScreen() {
             </div>
 
             <div className="analytics-bars">
-              {chartPoints.map((point, index) => (
+              {chartMeta.points.map((point, index) => (
                 <div key={`${point}-${index}`} className="analytics-bar-col">
                   <div
                     className="analytics-bar"
-                    style={{ height: `${Math.max((point / maxChartValue) * 100, 6)}%` }}
+                    style={{ height: `${Math.max((point / chartMeta.max) * 100, 6)}%` }}
                     title={`${localizedLabels[index] ?? ''}: ${formatCurrency(point)}`}
                   />
                   <span>{localizedLabels[index]}</span>

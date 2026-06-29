@@ -1,12 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Eye, EyeOff, LogIn, ShieldCheck } from 'lucide-react';
 import { login } from '@/auth/service';
 import { useAuthStore } from '@/auth/store';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { setupHttpInterceptors } from '@/lib/http';
 import { useAppStore } from '@/store/app.store';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: true,
+      retry: 1,
+    },
+  },
+});
 
 export function AppProviders({ children }: Readonly<{ children: React.ReactNode }>) {
   const status = useAuthStore((state) => state.status);
@@ -170,5 +182,5 @@ export function AppProviders({ children }: Readonly<{ children: React.ReactNode 
       </div>
     );
   }
-  return children;
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

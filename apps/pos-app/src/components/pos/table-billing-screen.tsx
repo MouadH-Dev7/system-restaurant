@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, CreditCard, ReceiptText } from 'lucide-react';
 import type { OrderResponse } from '@repo/shared-types';
 import { usePosOrderActions } from '@/hooks/use-pos-order-actions';
 import { formatMoney, formatTime } from '@/lib/format';
+import { FinancialSummary, OrderItemList } from '@/components/pos-shared';
 import {
   formatCountLabel,
   formatGuestLabel,
@@ -35,7 +36,7 @@ function getBillingStatus(
 }
 
 function countItems(orders: OrderResponse[]) {
-  return orders.reduce((sum, order) => sum + order.items.reduce((lineSum, item) => lineSum + item.quantity, 0), 0);
+  return orders.reduce((sum, order) => sum + (order.items ?? []).reduce((lineSum, item) => lineSum + item.quantity, 0), 0);
 }
 
 function countGuests(orders: OrderResponse[]) {
@@ -215,14 +216,7 @@ export function TableBillingScreen() {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
-          {summaryCards.map((card) => (
-            <div key={card.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{card.label}</p>
-              <p className="mt-2 text-xl font-bold text-slate-900">{card.value}</p>
-            </div>
-          ))}
-        </div>
+        <FinancialSummary variant="summary-grid" cards={summaryCards} />
       </section>
 
       <section className="rounded-[30px] border border-white/70 bg-white/85 p-6">
@@ -280,14 +274,16 @@ export function TableBillingScreen() {
 
                 {expanded ? (
                   <div className="mt-4 space-y-2 border-t border-dashed border-slate-200 pt-4">
-                    {order.items.map((item) => (
-                      <div key={item.id} className="flex justify-between gap-3 text-sm">
-                        <span>
-                          {item.quantity}x {item.menuItem?.nameAr ?? item.menuItem?.nameEn ?? item.menuItem?.name ?? item.menuItemId}
-                        </span>
-                        <span className="font-semibold">{formatMoney(item.price * item.quantity)}</span>
-                      </div>
-                    ))}
+                    <OrderItemList
+                      variant="inline"
+                      items={order.items.map((item) => ({
+                        id: item.id,
+                        name: item.menuItem?.nameAr ?? item.menuItem?.nameEn ?? item.menuItem?.name ?? item.menuItemId,
+                        quantity: item.quantity,
+                        unitPrice: item.price,
+                        total: item.price * item.quantity,
+                      }))}
+                    />
                   </div>
                 ) : null}
               </article>

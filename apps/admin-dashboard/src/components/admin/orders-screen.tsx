@@ -175,7 +175,7 @@ export function OrdersScreen() {
                 const source = isWalkIn
                   ? t('orders.takeaway')
                   : `${t('tables.table')} ${tableNumber} / ${t('orders.dineIn')}`;
-                const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
+                const totalItems = (order.items ?? []).reduce((sum, item) => sum + item.quantity, 0);
                 const elapsedMinutes = Math.floor(
                   (Date.now() - new Date(order.createdAt).getTime()) / 60000,
                 );

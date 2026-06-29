@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -33,6 +34,8 @@ type SafeUser = {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -383,7 +386,8 @@ export class AuthService {
       return await this.jwtService.verifyAsync<JwtUserPayload>(refreshToken, {
         secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
       });
-    } catch {
+    } catch (error) {
+      this.logger.error(`Refresh token verification failed: ${(error as Error).message}`, (error as Error).stack);
       throw new UnauthorizedException('Refresh token is invalid or expired');
     }
   }

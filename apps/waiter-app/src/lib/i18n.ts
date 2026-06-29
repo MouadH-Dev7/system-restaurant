@@ -6,7 +6,10 @@ import type {
   OrderResponse,
   TableDTO,
 } from '@repo/shared-types';
-import type { DraftLine, DraftModifierDetail, WaiterLanguage } from '@/store/waiter.store';
+import type { DraftLine, DraftModifierDetail } from '@/store/waiter.store';
+import type { Language } from '@repo/i18n';
+
+type WaiterLanguage = Language;
 
 type WaiterDictionary = {
   waiterService: string;
@@ -440,6 +443,11 @@ const dictionary: Record<WaiterLanguage, Partial<WaiterDictionary>> = {
     waiterCalledTable: 'الطاولة {{table}} تطلب النادل',
     orderReadyTable: 'الطلب #{{ticket}} للطاولة {{table}} جاهز للتقديم',
     activeService: 'الخدمة النشطة',
+    trackTableOrders: 'تتبع طلبات الطاولة',
+    trackOrdersHint: 'اختر طاولة لمتابعة كل طلب وتقدمه في المطبخ مباشرة.',
+    noOrdersForTracking: 'لا توجد طلبات نشطة لهذه الطاولة بعد.',
+    trackingOrdersCount: '{{count}} طلب نشط على هذه الطاولة',
+    trackingUpdatedLive: 'يتم التحديث مباشرة من المطبخ',
     newTicketDraft: 'مسودة تذكرة جديدة',
     draftOnly: 'مسودة فقط',
     kitchenPipeline: 'حالة المطبخ والدفع',
@@ -535,12 +543,7 @@ export function waiterDir(language: WaiterLanguage) {
   return language === 'ar' ? 'rtl' : 'ltr';
 }
 
-export function replaceTemplate(template: string, values: Record<string, string | number>) {
-  return Object.entries(values).reduce(
-    (result, [key, value]) => result.replace(`{{${key}}}`, String(value)),
-    template,
-  );
-}
+export { replaceTemplate } from '@repo/i18n';
 
 function localizedName<
   T extends { name: string; nameEn?: string | null; nameFr?: string | null; nameAr?: string | null },

@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
-import type { RealtimeEvent } from '@repo/shared-types';
+import { useCallback, useEffect, useRef } from 'react';
+import type { RealtimeEvent, RealtimeOrderDelta } from '@repo/shared-types';
 import { usePosSocket } from '@/hooks/use-pos-socket';
 import { listMenuItems } from '@/services/menu.service';
-import { listPosOrders } from '@/services/orders.service';
+import { getPosOrder, listPosOrders } from '@/services/orders.service';
 import { getSettings } from '@/services/settings.service';
 import { getTableBilling, listRestaurantTables } from '@/services/tables.service';
 import { usePosDataStore } from '@/store/pos-data.store';
@@ -62,7 +62,7 @@ export function usePosBootstrap({ enabled, restaurantId }: UsePosBootstrapOption
               setMenuItems(items);
             }
           })
-          .catch(() => undefined);
+          .catch((err) => console.error('[usePosBootstrap] Failed to load menu items:', err));
 
         const { selectedOrderId, selectedTableId, selectOrder, selectTable } =
           usePosUiStore.getState();
@@ -111,31 +111,55 @@ export function usePosBootstrap({ enabled, restaurantId }: UsePosBootstrapOption
     setTables,
   ]);
 
+  const abortRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleOrderEvent = useCallback(
-    (event: RealtimeEvent, order: Parameters<typeof upsertOrder>[0]) => {
-      upsertOrder(order);
-      setLastSyncAt(new Date());
-
-      if (!order.tableId) {
+    (event: RealtimeEvent, payload: RealtimeOrderDelta) => {
+      const orderId = payload.orderId;
+      if (!orderId) {
         return;
       }
 
-      const activeTableId = usePosUiStore.getState().selectedTableId;
-      const shouldRefreshBilling =
-        activeTableId === order.tableId ||
-        event === 'ORDER_CANCELLED' ||
-        event === 'ORDER_PAID' ||
-        event === 'ORDER_DELIVERED';
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      abortRef.current?.abort();
 
-      if (!shouldRefreshBilling) {
-        return;
-      }
+      debounceRef.current = setTimeout(() => {
+        const controller = new AbortController();
+        abortRef.current = controller;
 
-      void getTableBilling(order.tableId)
-        .then((billing) => {
-          setTableBilling(billing);
-        })
-        .catch(() => undefined);
+        void getPosOrder(orderId)
+          .then((freshOrder) => {
+            upsertOrder(freshOrder);
+            setLastSyncAt(new Date());
+
+            if (!freshOrder.tableId) {
+              return;
+            }
+
+            const activeTableId = usePosUiStore.getState().selectedTableId;
+            const shouldRefreshBilling =
+              activeTableId === freshOrder.tableId ||
+              event === 'ORDER_CANCELLED' ||
+              event === 'ORDER_PAID' ||
+              event === 'ORDER_DELIVERED';
+
+            if (!shouldRefreshBilling) {
+              return;
+            }
+
+            return getTableBilling(freshOrder.tableId);
+          })
+          .then((billing) => {
+            if (billing) {
+              setTableBilling(billing);
+            }
+          })
+          .catch((err) => {
+            if (err instanceof DOMException && err.name === 'AbortError') return;
+            console.error('[usePosBootstrap] Failed to sync order from delta:', err);
+          });
+      }, 100);
     },
     [setLastSyncAt, setTableBilling, upsertOrder],
   );

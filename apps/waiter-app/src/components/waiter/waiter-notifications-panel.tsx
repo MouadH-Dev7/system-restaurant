@@ -7,9 +7,10 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { formatTime } from '@/lib/format';
 import { waiterDir } from '@/lib/i18n';
 import { acceptWaiterNotification, resolveWaiterNotification } from '@/services/waiter-notifications.service';
+import type { WaiterNotificationDTO, WaiterNotificationItemDTO, WaiterNotificationItemModifierDTO } from '@repo/shared-types';
 import { type WaiterLanguage, useWaiterStore } from '@/store/waiter.store';
 
-function getNotificationMessage(notification: any, language: WaiterLanguage) {
+function getNotificationMessage(notification: WaiterNotificationDTO, language: WaiterLanguage) {
   if (notification.type === 'CALL_WAITER') {
     if (language === 'ar') {
       return `الطاولة ${notification.tableNumber} تطلب نادلاً`;
@@ -44,7 +45,7 @@ function getNotificationMessage(notification: any, language: WaiterLanguage) {
   return notification.message;
 }
 
-function localizeNotificationItemName(item: any, language: WaiterLanguage) {
+function localizeNotificationItemName(item: WaiterNotificationItemDTO, language: WaiterLanguage) {
   if (language === 'ar') {
     return item.nameAr ?? item.name;
   }
@@ -54,7 +55,7 @@ function localizeNotificationItemName(item: any, language: WaiterLanguage) {
   return item.nameEn ?? item.name;
 }
 
-function localizeNotificationModifierName(mod: any, language: WaiterLanguage) {
+function localizeNotificationModifierName(mod: WaiterNotificationItemModifierDTO, language: WaiterLanguage) {
   const groupName =
     language === 'ar'
       ? mod.groupNameAr ?? mod.groupName
@@ -315,7 +316,7 @@ export function WaiterNotificationsPanel() {
                           </span>
                         </p>
                         <ul className="space-y-2 divide-y divide-dashed divide-[#ead7c8]/60">
-                          {notification.metadata.items.map((item: any, index: number) => {
+                          {notification.metadata.items.map((item: WaiterNotificationItemDTO, index: number) => {
                             const itemName = localizeNotificationItemName(item, language);
                             return (
                               <li key={index} className={`text-slate-700 ${index > 0 ? 'pt-2' : ''}`}>
@@ -327,7 +328,7 @@ export function WaiterNotificationsPanel() {
                                 {item.modifiers && item.modifiers.length > 0 && (
                                   <span className="block text-xs text-slate-500 mt-1 ps-4">
                                     {item.modifiers
-                                      .map((mod: any) => localizeNotificationModifierName(mod, language))
+                                      .map((mod: WaiterNotificationItemModifierDTO) => localizeNotificationModifierName(mod, language))
                                       .join(' | ')}
                                   </span>
                                 )}

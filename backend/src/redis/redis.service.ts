@@ -8,6 +8,7 @@ type MessageHandler = (message: string) => void;
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private publisher!: Redis;
   private subscriber!: Redis;
+  private subClient!: Redis;
   private readonly handlers = new Map<string, Set<MessageHandler>>();
 
   constructor(private readonly config: ConfigService) {}
@@ -15,7 +16,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   onModuleInit() {
     this.publisher = this.createClient('publisher');
     this.subscriber = this.createClient('subscriber');
+    this.subClient = this.subscriber.duplicate();
 
+    this.setupSubscriberListeners();
+  }
+
+  private setupSubscriberListeners() {
     this.subscriber.on('message', (channel, message) => {
       const channelHandlers = this.handlers.get(channel);
       if (!channelHandlers) {
@@ -26,10 +32,23 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         handler(message);
       }
     });
+
+    this.subscriber.on('reconnecting', () => {
+      console.warn('[Redis] Subscriber reconnecting – subscriptions will be restored on connect');
+    });
+
+    this.subscriber.on('connect', () => {
+      if (this.handlers.size === 0) {
+        return;
+      }
+
+      const channels = [...this.handlers.keys()];
+      this.subscriber.subscribe(...channels);
+    });
   }
 
   async onModuleDestroy() {
-    await Promise.all([this.publisher?.quit(), this.subscriber?.quit()]);
+    await Promise.all([this.publisher?.quit(), this.subscriber?.quit(), this.subClient?.quit()]);
   }
 
   async publish(channel: string, message: string) {
@@ -61,7 +80,20 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.handlers.set(channel, new Set([handler]));
-    await this.subscriber.subscribe(channel);
+    await this.subClient.subscribe(channel);
+  }
+
+  async unsubscribe(channel: string) {
+    await this.subClient.unsubscribe(channel);
+    this.handlers.delete(channel);
+  }
+
+  async unsubscribeAll() {
+    const channels = [...this.handlers.keys()];
+    if (channels.length > 0) {
+      await this.subClient.unsubscribe(...channels);
+      this.handlers.clear();
+    }
   }
 
   createClient(connectionName?: string) {
@@ -86,6 +118,22 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       tls: parsed.protocol === 'rediss:' ? {} : undefined,
       connectionName,
       maxRetriesPerRequest: null,
+      retryStrategy: (times: number) => {
+        if (times > 10) {
+          console.error('[Redis] Max retries reached – giving up');
+          return null;
+        }
+
+        return Math.min(times * 200, 5000);
+      },
+      reconnectOnError: (err: Error) => {
+        const targetMessage = 'READONLY';
+        if (err.message.includes(targetMessage)) {
+          return true;
+        }
+
+        return false;
+      },
     };
   }
 }

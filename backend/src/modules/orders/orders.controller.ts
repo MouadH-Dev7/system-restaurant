@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
 import type { OrderResponse, TableOrdersGroupDTO } from '@repo/shared-types';
 import { IdParamDto } from '../../common/dto/uuid-param.dto';
@@ -19,7 +20,9 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   createOrder(@Body() input: CreateOrderDto): Promise<OrderResponse> {
     return this.ordersService.createOrder(input);
   }
@@ -34,6 +37,7 @@ export class OrdersController {
   }
 
   @Post('staff')
+  @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER, UserRole.WAITER)
   createStaffOrder(
     @Body() input: CreateStaffOrderDto,

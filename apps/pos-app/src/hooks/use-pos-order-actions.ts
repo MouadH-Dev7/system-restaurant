@@ -47,8 +47,8 @@ function buildReceiptBundle(
       firstOrder ? isWalkInOrder(firstOrder) : true,
     ),
     guestLabel,
-    itemCount: sortedOrders.reduce((sum, order) => sum + order.items.length, 0),
-    total: sortedOrders.reduce((sum, order) => sum + order.grandTotal, 0),
+    itemCount: sortedOrders.reduce((sum, order) => sum + (order.items ?? []).length, 0),
+    total: sortedOrders.reduce((sum, order) => sum + (order.grandTotal ?? 0), 0),
     orders: sortedOrders,
   };
 }
@@ -95,20 +95,6 @@ export function usePosOrderActions() {
 
       for (const targetOrder of targetOrders) {
         let current = targetOrder;
-
-        while (
-          current.status !== 'DELIVERED' &&
-          current.status !== 'PAID' &&
-          current.status !== 'CANCELLED'
-        ) {
-          const nextStatus = getNextOrderStatus(current.status);
-          if (!nextStatus) {
-            break;
-          }
-
-          current = await updateOrderStatus(current.id, nextStatus);
-          upsertOrder(current);
-        }
 
         if (current.status !== 'CANCELLED' && current.remainingAmount > 0) {
           const resolvedPaymentMethod = usePosUiStore.getState().selectedPaymentMethod;

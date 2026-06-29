@@ -4,6 +4,7 @@ import { AnalyticsModule } from '../analytics/analytics.module';
 import { DiscountsModule } from '../discounts/discounts.module';
 import { LogsModule } from '../logs/logs.module';
 import { MenuModule } from '../menu/menu.module';
+import { ModifierIngredientsModule } from '../modifier-ingredients/modifier-ingredients.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { PrintingModule } from '../printing/printing.module';
 import { RestaurantsModule } from '../restaurants/restaurants.module';
@@ -17,6 +18,7 @@ import { OrdersService } from './orders.service';
     forwardRef(() => TablesModule),
     MenuModule,
     AnalyticsModule,
+    ModifierIngredientsModule,
     PaymentsModule,
     DiscountsModule,
     LogsModule,

@@ -16,11 +16,12 @@ export function useMenuItems(context: OrderContextDTO | null, menuId?: string) {
     }
 
     const orderContext = context;
+    const controller = new AbortController();
     let active = true;
 
     async function loadMenuItems() {
       try {
-        const nextItems = await getMenuItems(orderContext.restaurantId, menuId);
+        const nextItems = await getMenuItems(orderContext.restaurantId, menuId, controller.signal);
         if (active) {
           setItems(nextItems);
           setFailed(false);
@@ -36,6 +37,7 @@ export function useMenuItems(context: OrderContextDTO | null, menuId?: string) {
 
     return () => {
       active = false;
+      controller.abort();
     };
   }, [context, menuId]);
 

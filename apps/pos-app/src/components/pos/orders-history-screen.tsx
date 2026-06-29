@@ -86,7 +86,7 @@ export function OrdersHistoryScreen() {
         ticket.guestName,
         order.status,
         order.source,
-        ...order.items.map((item) => item.menuItem?.name ?? item.menuItemId),
+        ...(order.items ?? []).map((item) => item.menuItem?.name ?? item.menuItemId),
       ]
         .join(' ')
         .toLowerCase();
@@ -121,8 +121,8 @@ export function OrdersHistoryScreen() {
         orderIds: [order.id],
         tableLabel: ticketLabel(order),
         guestLabel: guestLabel(order),
-        itemCount: order.items.length,
-        total: order.grandTotal,
+        itemCount: (order.items ?? []).length,
+        total: order.grandTotal ?? 0,
         orders: [order],
         createdAt: order.createdAt,
       });
@@ -218,23 +218,23 @@ export function OrdersHistoryScreen() {
                   </div>
                   <div className="rounded-2xl bg-slate-50 px-4 py-3">
                     <p className="text-xs text-slate-500">{t.items}</p>
-                    <p className="mt-1 font-bold text-slate-900">{order.items.length}</p>
+                    <p className="mt-1 font-bold text-slate-900">{(order.items ?? []).length}</p>
                   </div>
                   <div className="rounded-2xl bg-slate-50 px-4 py-3">
                     <p className="text-xs text-slate-500">{t.total}</p>
-                    <p className="mt-1 font-bold text-slate-900">{formatMoney(order.grandTotal)}</p>
+                    <p className="mt-1 font-bold text-slate-900">{formatMoney(order.grandTotal ?? 0)}</p>
                   </div>
                 </div>
 
                 <div className="mt-4 space-y-2 rounded-2xl bg-[#fcf7f2] px-4 py-4 text-sm text-slate-700">
-                  {order.items.slice(0, 4).map((item) => (
+                  {(order.items ?? []).slice(0, 4).map((item) => (
                     <div key={item.id} className="flex items-center justify-between gap-3">
                       <span>{item.menuItem?.name ?? item.menuItemId}</span>
                       <span className="font-semibold">x{item.quantity}</span>
                     </div>
                   ))}
-                  {order.items.length > 4 ? (
-                    <div className="text-xs text-slate-500">+{order.items.length - 4} {t.items}</div>
+                  {(order.items ?? []).length > 4 ? (
+                    <div className="text-xs text-slate-500">+{(order.items ?? []).length - 4} {t.items}</div>
                   ) : null}
                 </div>
 

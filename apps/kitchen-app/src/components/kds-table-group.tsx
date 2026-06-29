@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import type { OrderResponse } from '@repo/shared-types';
 import { KdsOrderCard } from '@/components/kds-order-card';
 import type { TableOrderGroup } from '@/lib/group-orders-by-table';
@@ -17,7 +18,7 @@ type KdsTableGroupProps = {
   highlightOrderId?: string | null;
 };
 
-export function KdsTableGroup({
+export const KdsTableGroup = memo(function KdsTableGroup({
   group,
   accent,
   actionLabel,
@@ -76,4 +77,4 @@ export function KdsTableGroup({
       </div>
     </article>
   );
-}
+});

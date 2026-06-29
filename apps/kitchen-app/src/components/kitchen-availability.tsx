@@ -5,13 +5,8 @@ import type { MenuDTO, MenuItemDTO, ModifierOptionDTO } from '@repo/shared-types
 import { useAuthStore } from '@/auth/store';
 import { KitchenShell } from '@/components/kitchen-shell';
 import { useKitchenSocket } from '@/hooks/use-kitchen-socket';
-import {
-  kitchenT,
-  localizeMenuItemName,
-  localizeMenuName,
-  localizeModifierGroupName,
-  localizeModifierOptionName,
-} from '@/lib/i18n';
+import { AvailabilityHeader, AvailabilityTable } from '@/components/availability-sections';
+import { kitchenT } from '@/lib/i18n';
 import {
   listMenuItems,
   listMenus,
@@ -151,180 +146,28 @@ export function KitchenAvailability() {
   return (
     <KitchenShell mounted={mounted} now={now} status={status} lastSyncAt={lastSyncAt}>
       <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-high p-4 shadow-xl">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-black uppercase tracking-[0.24em] text-primary-container">
-              {t.availabilityTitle}
-            </h2>
-            <p className="mt-1 text-sm text-on-surface-variant">{t.availabilitySubtitle}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <select
-              className="rounded-xl border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface outline-none"
-              value={selectedMenuId}
-              onChange={(event) => setSelectedMenuId(event.target.value)}
-            >
-              <option value="all">{t.allMenus}</option>
-              {menus.map((menu) => (
-                <option key={menu.id} value={menu.id}>
-                  {localizeMenuName(menu, language)}
-                </option>
-              ))}
-            </select>
-            <label className="flex items-center gap-2 rounded-xl border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-primary-container"
-                checked={showUnavailableAddonsOnly}
-                onChange={(event) => setShowUnavailableAddonsOnly(event.target.checked)}
-              />
-              <span>{t.unavailableAddonsOnly}</span>
-            </label>
-          </div>
-        </div>
+        <AvailabilityHeader
+          t={t}
+          menus={menus}
+          selectedMenuId={selectedMenuId}
+          showUnavailableAddonsOnly={showUnavailableAddonsOnly}
+          language={language}
+          onMenuChange={(menuId) => setSelectedMenuId(menuId)}
+          onToggleUnavailableAddons={(checked) => setShowUnavailableAddonsOnly(checked)}
+        />
 
-        {error ? (
-          <div className="rounded-xl border border-error/50 bg-error/10 px-4 py-3 text-sm font-semibold text-error">
-            {error}
-          </div>
-        ) : loading ? (
-          <div className="rounded-xl border border-outline-variant bg-surface px-4 py-4 text-sm text-on-surface-variant">
-            {t.loadingMenuItems}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {visibleMenuItems.map((item) => {
-              const busyItem = togglingItemId === item.id;
-              const menu = menus.find((entry) => entry.id === item.menuId);
-              const hasModifiers = Boolean(item.modifierGroups?.length);
-
-              return (
-                <div
-                  key={item.id}
-                  className={`rounded-2xl border p-4 transition ${
-                    item.available
-                      ? 'border-emerald-500/30 bg-emerald-500/10'
-                      : 'border-rose-500/30 bg-rose-500/10'
-                  }`}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-on-surface">
-                        {localizeMenuItemName(item, language)}
-                      </h3>
-                      <p className="mt-1 text-sm text-on-surface-variant">
-                        {menu ? localizeMenuName(menu, language) : t.menuLabel}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-[11px] font-black uppercase ${
-                          item.available ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
-                        }`}
-                      >
-                        {item.available ? t.available : t.finished}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={busyItem}
-                        onClick={() => void toggleMenuItem(item)}
-                        className={`rounded-xl px-3 py-2 text-sm font-black transition active-btn ${
-                          item.available
-                            ? 'bg-rose-500 text-white hover:brightness-110'
-                            : 'bg-emerald-500 text-white hover:brightness-110'
-                        } disabled:opacity-60`}
-                      >
-                        {busyItem ? t.updating : item.available ? t.markFinished : t.returnToMenu}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 rounded-2xl border border-outline-variant/50 bg-surface/60 p-4">
-                    <div className="mb-3">
-                      <h4 className="text-sm font-black uppercase tracking-[0.2em] text-secondary-container">
-                        {t.modifierOptionsTitle}
-                      </h4>
-                      <p className="mt-1 text-sm text-on-surface-variant">
-                        {t.modifierOptionsSubtitle}
-                      </p>
-                    </div>
-
-                    {hasModifiers ? (
-                      <div className="space-y-3">
-                        {item.modifierGroups?.map((group) => (
-                          <div
-                            key={group.id}
-                            className="rounded-xl border border-outline-variant/40 bg-background/40 p-3"
-                          >
-                            <div className="mb-3 flex items-center justify-between gap-3">
-                              <div>
-                                <h5 className="text-sm font-bold text-on-surface">
-                                  {localizeModifierGroupName(group, language)}
-                                </h5>
-                                <p className="text-xs text-on-surface-variant">
-                                  {group.required ? t.required : t.optional}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                              {group.options.map((option) => {
-                                const busyOption = togglingOptionId === option.id;
-                                return (
-                                  <div
-                                    key={option.id}
-                                    className={`rounded-xl border p-3 ${
-                                      option.available
-                                        ? 'border-emerald-500/30 bg-emerald-500/10'
-                                        : 'border-rose-500/30 bg-rose-500/10'
-                                    }`}
-                                  >
-                                    <div className="flex items-start justify-between gap-2">
-                                      <div>
-                                        <p className="text-sm font-bold text-on-surface">
-                                          {localizeModifierOptionName(option, language)}
-                                        </p>
-                                        <p className="mt-1 text-xs text-on-surface-variant">
-                                          {option.available ? t.available : t.finished}
-                                        </p>
-                                      </div>
-                                    </div>
-
-                                    <button
-                                      type="button"
-                                      disabled={busyOption}
-                                      onClick={() => void toggleModifierOption(item.id, option)}
-                                      className={`mt-3 w-full rounded-lg px-3 py-2 text-xs font-black transition active-btn ${
-                                        option.available
-                                          ? 'bg-rose-500 text-white hover:brightness-110'
-                                          : 'bg-emerald-500 text-white hover:brightness-110'
-                                      } disabled:opacity-60`}
-                                    >
-                                      {busyOption
-                                        ? t.updating
-                                        : option.available
-                                          ? t.hideOption
-                                          : t.returnOption}
-                                    </button>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-outline-variant bg-surface px-4 py-4 text-sm text-on-surface-variant">
-                        {t.noModifierOptions}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <AvailabilityTable
+          t={t}
+          language={language}
+          visibleMenuItems={visibleMenuItems}
+          menus={menus}
+          togglingItemId={togglingItemId}
+          togglingOptionId={togglingOptionId}
+          loading={loading}
+          error={error}
+          onToggleItem={(item) => void toggleMenuItem(item)}
+          onToggleOption={(itemId, option) => void toggleModifierOption(itemId, option)}
+        />
       </div>
     </KitchenShell>
   );

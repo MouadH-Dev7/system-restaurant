@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   REALTIME_EVENTS,
-  type OrderResponse,
   type RealtimeEvent,
+  type RealtimeOrderDelta,
   type WaiterNotificationRealtimePayload,
   type WaiterCallPayload,
 } from '@repo/shared-types';
@@ -12,7 +12,7 @@ import { getSocket, getSocketStatus, type SocketStatus } from '@/lib/socket';
 
 type UseWaiterSocketOptions = {
   restaurantId?: string;
-  onOrderEvent: (event: RealtimeEvent, order: OrderResponse) => void;
+  onOrderEvent: (event: RealtimeEvent, order: RealtimeOrderDelta) => void;
   onWaiterCall?: (payload: WaiterCallPayload) => void;
   onNotificationCreated?: (payload: WaiterNotificationRealtimePayload) => void;
   onNotificationAccepted?: (payload: WaiterNotificationRealtimePayload) => void;
@@ -86,7 +86,7 @@ export function useWaiterSocket({
       (event) =>
         [
           event,
-          (order: OrderResponse) => {
+          (order: RealtimeOrderDelta) => {
             onOrderEventRef.current(event, order);
           },
         ] as const,

@@ -19,8 +19,6 @@ export function useI18n() {
   const language = useAppStore((state) => state.language);
   const direction = useAppStore((state) => state.direction);
   const locale = useAppStore((state) => state.locale);
-  const dateFormat = useAppStore((state) => state.dateFormat);
-  const currency = useAppStore((state) => state.currency);
 
   const currentLocale = locale || defaultLocale(language);
   const currentDir = direction || (isRtl(language) ? 'rtl' : 'ltr');
@@ -60,13 +58,13 @@ export function useI18n() {
   );
 
   const formatCurrency = useCallback(
-    (value: number, currentCurrency = currency || 'DZD') =>
+    (value: number, currentCurrency = 'DZD') =>
       new Intl.NumberFormat(currentLocale, {
         style: 'currency',
         currency: currentCurrency,
         maximumFractionDigits: 0,
       }).format(value),
-    [currentLocale, currency],
+    [currentLocale],
   );
 
   const formatNumber = useCallback(
@@ -86,8 +84,6 @@ export function useI18n() {
   return {
     language,
     locale: currentLocale,
-    dateFormat,
-    currency,
     dir: currentDir,
     t,
     statusLabel,

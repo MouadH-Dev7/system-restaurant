@@ -19,3 +19,7 @@ export async function updateInventoryItem(itemId: string, input: UpdateInventory
   const { data } = await http.patch<InventoryItemDTO>(`/inventory/${itemId}`, input);
   return data;
 }
+
+export async function deleteInventoryItem(itemId: string) {
+  await http.delete(`/inventory/${itemId}`);
+}

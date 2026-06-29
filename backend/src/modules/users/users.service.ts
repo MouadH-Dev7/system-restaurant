@@ -245,7 +245,7 @@ export class UsersService {
     address: string | null;
     staffCode: string | null;
     salaryType: string | null;
-    salaryAmount: number | null;
+    salaryAmount: number | { toNumber(): number } | null;
     emergencyContactName: string | null;
     emergencyContactPhone: string | null;
     notes: string | null;
@@ -265,7 +265,7 @@ export class UsersService {
       address: user.address,
       staffCode: user.staffCode ?? '',
       salaryType: (user.salaryType as StaffMemberDTO['salaryType']) ?? null,
-      salaryAmount: user.salaryAmount,
+      salaryAmount: user.salaryAmount !== null ? Number(user.salaryAmount) : null,
       emergencyContactName: user.emergencyContactName,
       emergencyContactPhone: user.emergencyContactPhone,
       notes: user.notes,

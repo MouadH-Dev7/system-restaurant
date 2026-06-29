@@ -1,14 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Minus, Plus, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import type { CartItemDTO, MenuItemDTO } from '@repo/shared-types';
 import { useAuthStore } from '@/auth/store';
 import { PosMenuFlow } from '@/components/pos/pos-menu-flow';
 import { usePosOrderActions } from '@/hooks/use-pos-order-actions';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { formatMoney } from '@/lib/format';
 import { findTicket, usePosOrdersView } from '@/hooks/use-pos-selectors';
+import { FinancialSummary, OrderItemList } from '@/components/pos-shared';
 import { localizeMenuItemName, localizeModifierName, posT } from '@/lib/i18n';
 import { listMenuItems } from '@/services/menu.service';
 import { updateOrderStatus } from '@/services/orders.service';
@@ -72,7 +72,7 @@ export function OrderDetailScreen() {
 
     void listMenuItems(restaurantId)
       .then(setMenuItems)
-      .catch(() => undefined);
+      .catch((err) => console.error('[OrderDetailScreen] Failed to load menu items:', err));
   }, [restaurantId]);
 
   useEffect(() => {
@@ -82,7 +82,7 @@ export function OrderDetailScreen() {
     }
 
     setDraftItems(
-      order.items.map((item) => ({
+      (order.items ?? []).map((item) => ({
         cartLineId: item.id,
         menuItemId: item.menuItemId,
         quantity: item.quantity,
@@ -116,16 +116,16 @@ export function OrderDetailScreen() {
     return draftItems.flatMap((item) => {
       const menuItem =
         menuById[item.menuItemId] ??
-        order.items.find((line) => line.id === item.cartLineId)?.menuItem ??
-        order.items.find((line) => line.menuItemId === item.menuItemId)?.menuItem;
+        (order.items ?? []).find((line) => line.id === item.cartLineId)?.menuItem ??
+        (order.items ?? []).find((line) => line.menuItemId === item.menuItemId)?.menuItem;
 
       if (!menuItem) {
         return [];
       }
 
       const sourceLine =
-        order.items.find((line) => line.id === item.cartLineId) ??
-        order.items.find((line) => line.menuItemId === item.menuItemId);
+        (order.items ?? []).find((line) => line.id === item.cartLineId) ??
+        (order.items ?? []).find((line) => line.menuItemId === item.menuItemId);
       const unitPrice = sourceLine?.price ?? menuItem.price;
       const modifiers =
         sourceLine?.modifiers?.map((modifier) => localizeModifierName(modifier, language)) ?? [];
@@ -325,48 +325,17 @@ export function OrderDetailScreen() {
       <section className="rounded-[32px] border border-white/70 bg-white/80 p-6">
         <h3 className="text-lg font-bold">{t.orderItems}</h3>
         <div className="mt-4 space-y-4">
-          {lines.length === 0 ? (
-            <p className="text-sm text-slate-500">{t.noItemsYet}</p>
-          ) : (
-            lines.map((item) => (
-              <article
-                key={item.id}
-                className="flex items-center justify-between rounded-[24px] border border-slate-200 bg-white p-4"
-              >
-                <div className="flex items-center gap-4">
-                  {canEdit ? (
-                    <div className="rounded-2xl bg-[#eef4fb] p-2 text-[#39506b]">
-                      <button type="button" className="block p-1" onClick={() => updateQuantity(item.id, 1)}>
-                        <Plus size={16} />
-                      </button>
-                      <div className="py-1 text-center text-lg font-bold">{item.quantity}</div>
-                      <button type="button" className="block p-1" onClick={() => updateQuantity(item.id, -1)}>
-                        <Minus size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-lg font-bold">{item.quantity}x</span>
-                  )}
-                  <div>
-                    <h4 className="text-lg font-bold">{item.name}</h4>
-                    <p className="text-sm text-slate-500">
-                      {formatMoney(item.unitPrice)} {t.each}
-                    </p>
-                    {item.modifiers.length ? (
-                      <p className="mt-1 text-xs text-slate-500">{item.modifiers.join(' | ')}</p>
-                    ) : null}
-                  </div>
-                </div>
-                <p className="text-xl font-bold">{formatMoney(item.total)}</p>
-              </article>
-            ))
-          )}
+          <OrderItemList
+            variant="card"
+            items={lines}
+            canEdit={canEdit}
+            onQuantityChange={updateQuantity}
+            unitPriceLabel={t.each}
+            emptyMessage={t.noItemsYet}
+          />
         </div>
 
-        <div className="mt-6 flex justify-between border-t border-dashed border-slate-200 pt-4 text-xl font-bold">
-          <span>{t.total}</span>
-          <span className="text-[#a73308]">{formatMoney(draftTotal)}</span>
-        </div>
+        <FinancialSummary variant="total-line" label={t.total} amount={draftTotal} />
       </section>
 
       <button

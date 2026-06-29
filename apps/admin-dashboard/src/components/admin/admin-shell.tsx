@@ -49,11 +49,11 @@ export function AdminShell({ activeScreen, children }: AdminShellProps) {
   const sidebarNavRef = useRef<HTMLElement | null>(null);
   const session = useAuthStore((state) => state.session);
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Zustand Store integrations
   const { t, dir, locale } = useI18n();
   const restaurantId = useAppStore((state) => state.restaurantId);
-  const searchQuery = useAppStore((state) => state.searchQuery);
-  const setSearchQuery = useAppStore((state) => state.setSearchQuery);
 
   useEffect(() => {
     if (!restaurantId) {
@@ -69,7 +69,7 @@ export function AdminShell({ activeScreen, children }: AdminShellProps) {
       }
     };
     const refreshNotifications = () => {
-      void listLogs(restaurantId).then(setNotifications).catch(() => setNotifications([]));
+      void listLogs(restaurantId).then((r) => setNotifications(r.data)).catch(() => setNotifications([]));
     };
 
     socket.on('connect', joinAdminRoom);
@@ -114,9 +114,9 @@ export function AdminShell({ activeScreen, children }: AdminShellProps) {
 
     async function loadNotifications() {
       try {
-        const logs = await listLogs(activeRestaurantId);
+        const res = await listLogs(activeRestaurantId);
         if (active) {
-          setNotifications(logs);
+          setNotifications(res.data);
         }
       } catch {
         if (active) {

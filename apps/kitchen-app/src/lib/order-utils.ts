@@ -28,7 +28,7 @@ export function isLateOrder(createdAt: string, status: OrderResponse['status']) 
 export function groupItemsByMenu(order: OrderResponse) {
   const groups = new Map<string, OrderResponse['items']>();
 
-  for (const item of order.items) {
+  for (const item of (order.items ?? [])) {
     const key = item.menuItem?.name ?? 'Items';
     const bucket = groups.get(key) ?? [];
     bucket.push(item);

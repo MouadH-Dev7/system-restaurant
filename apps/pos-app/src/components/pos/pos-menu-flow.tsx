@@ -2,7 +2,7 @@
 
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, Minus, Plus, X } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import type {
   CartItemDTO,
   MenuDTO,
@@ -11,18 +11,11 @@ import type {
   ModifierOptionDTO,
 } from '@repo/shared-types';
 import { useAuthStore } from '@/auth/store';
-import { formatMoney } from '@/lib/format';
-import {
-  localizeMenuItemName,
-  localizeMenuName,
-  localizeModifierGroupName,
-  localizeModifierOptionName,
-  posT,
-  replaceTemplate,
-} from '@/lib/i18n';
+import { localizeMenuName, localizeModifierGroupName, posT, replaceTemplate } from '@/lib/i18n';
 import { randomId } from '@/lib/random-id';
 import { listMenuItems, listMenus } from '@/services/menu.service';
 import { usePosUiStore } from '@/store/pos-ui.store';
+import { ProductGrid, DraftCartPanel, ModifierModal } from '@/components/pos-sections';
 
 type PosMenuFlowProps = {
   title: string;
@@ -76,30 +69,6 @@ function findSelectedOptions(item: MenuItemDTO, selectedOptionIds: string[]) {
   return (item.modifierGroups ?? []).flatMap((group) =>
     group.options.filter((option) => selected.has(option.id)),
   );
-}
-
-function localizeItemDescription(item: MenuItemDTO, language: ReturnType<typeof usePosUiStore.getState>['language']) {
-  if (language === 'ar') {
-    return item.descriptionAr ?? item.description ?? '';
-  }
-
-  if (language === 'fr') {
-    return item.descriptionFr ?? item.descriptionEn ?? item.description ?? '';
-  }
-
-  return item.descriptionEn ?? item.description ?? '';
-}
-
-function localizeItemBadge(item: MenuItemDTO, language: ReturnType<typeof usePosUiStore.getState>['language']) {
-  if (language === 'ar') {
-    return item.badgeAr ?? item.badge ?? null;
-  }
-
-  if (language === 'fr') {
-    return item.badgeFr ?? item.badgeEn ?? item.badge ?? null;
-  }
-
-  return item.badgeEn ?? item.badge ?? null;
 }
 
 function toggleGroupOption(
@@ -203,7 +172,7 @@ export function PosMenuFlow({
 
     void listMenuItems(restaurantId)
       .then(setAllItems)
-      .catch(() => undefined);
+      .catch((err) => console.error('[PosMenuFlow] Failed to load menu items:', err));
   }, [restaurantId]);
 
   useEffect(() => {
@@ -425,6 +394,28 @@ export function PosMenuFlow({
     }
   }
 
+  const handleToggleOption = useCallback((group: ModifierGroupDTO, option: ModifierOptionDTO) => {
+    toggleGroupOption(group, option, setCustomizing);
+  }, []);
+
+  const handleCloseCustomizer = useCallback(() => {
+    setCustomizing(null);
+  }, []);
+
+  const handleUpdateNotes = useCallback((notes: string) => {
+    setCustomizing((current) => (current ? { ...current, notes } : current));
+  }, []);
+
+  const handleUpdateQuantity = useCallback((delta: number) => {
+    setCustomizing((current) =>
+      current ? { ...current, quantity: Math.max(1, current.quantity + delta) } : current,
+    );
+  }, []);
+
+  const handleBackToMenus = useCallback(() => {
+    setStep('menus');
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between rounded-[28px] border border-white/70 bg-white/80 p-5">
@@ -483,318 +474,43 @@ export function PosMenuFlow({
         </section>
       ) : (
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <button
-              type="button"
-              onClick={() => setStep('menus')}
-              className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-[#a73308]"
-            >
-              <ArrowLeft size={16} />
-              {selectedMenu ? localizeMenuName(selectedMenu, language) : t.menus}
-            </button>
-
-            <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
-              {loading ? (
-                <p className="text-slate-500">{t.loading}</p>
-              ) : (
-                menuItems.map((item) => (
-                  <article
-                    key={item.id}
-                    className={[
-                      'group overflow-hidden rounded-[30px] border',
-                      variant === 'waiter'
-                        ? 'border-[#ead7c8] bg-white shadow-[0_18px_45px_rgba(116,58,28,0.08)] transition hover:-translate-y-1 hover:border-[#cf835f]'
-                        : 'border-slate-200 bg-white transition hover:border-[#cf6d43] hover:shadow-md',
-                    ].join(' ')}
-                  >
-                    <div className="relative h-56 bg-[linear-gradient(135deg,#41251b,#8d2d0e)] sm:h-64">
-                      {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={localizeMenuItemName(item, language)}
-                          className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                        />
-                      ) : (
-                        <div className="flex h-full items-end p-5">
-                          <div className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-white backdrop-blur">
-                            {t.menus}
-                          </div>
-                        </div>
-                      )}
-                      <div className="absolute right-4 top-4 rounded-full bg-black/55 px-4 py-1.5 text-sm font-black text-white backdrop-blur">
-                        {formatMoney(item.price)}
-                      </div>
-                      {item.featured || localizeItemBadge(item, language) ? (
-                        <div className="absolute left-4 top-4 rounded-full bg-[#fff7d6] px-3 py-1.5 text-xs font-bold text-[#7a5600] shadow-sm">
-                          {localizeItemBadge(item, language) ?? t.customize}
-                        </div>
-                      ) : null}
-                      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent" />
-                    </div>
-
-                    <div className="flex items-start justify-between gap-4 p-5 sm:p-6">
-                      <div className="min-w-0">
-                        <h4 className="text-xl font-bold text-slate-950 sm:text-2xl">
-                          {localizeMenuItemName(item, language)}
-                        </h4>
-                        {localizeItemDescription(item, language) ? (
-                          <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500 sm:text-[15px]">
-                            {localizeItemDescription(item, language)}
-                          </p>
-                        ) : null}
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {!!item.modifierGroups?.length ? (
-                            <span className="rounded-full bg-[#f3f5f8] px-3 py-1.5 text-xs font-semibold text-slate-600">
-                              {t.customize}
-                            </span>
-                          ) : null}
-                          {localizeItemBadge(item, language) ? (
-                            <span className="rounded-full bg-[#fff0e8] px-3 py-1.5 text-xs font-semibold text-[#8d3c19]">
-                              {localizeItemBadge(item, language)}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => openItem(item)}
-                        className="shrink-0 rounded-2xl bg-[#a73308] px-4 py-3 text-sm font-bold text-white shadow-[0_12px_24px_rgba(167,51,8,0.22)] transition hover:bg-[#8f2b07] sm:min-w-[92px]"
-                      >
-                        {item.modifierGroups?.length ? t.customize : t.add}
-                      </button>
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-          </div>
-
-          <aside className="rounded-[28px] border border-white/70 bg-white/80 p-6">
-            <h3 className="text-lg font-bold">{t.currentTicket}</h3>
-            <div className="mt-4 space-y-3">
-              {cartLines.length === 0 ? (
-                <p className="text-sm text-slate-500">{t.addItemsFromMenu}</p>
-              ) : (
-                cartLines.map((line) => (
-                  <div
-                    key={line.cartLineId}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <button
-                          type="button"
-                          onClick={() => editLine(line.cartLineId)}
-                          className="text-left font-bold text-slate-900 hover:text-[#a73308]"
-                        >
-                          {line.quantity}x {localizeMenuItemName(line.item, language)}
-                        </button>
-                        {!!line.selectedOptions.length ? (
-                          <p className="mt-1 text-xs text-slate-500">
-                            {line.selectedOptions
-                              .map((option) => localizeModifierOptionName(option, language))
-                              .join(' | ')}
-                          </p>
-                        ) : null}
-                        {line.notes ? (
-                          <p className="mt-1 text-xs text-slate-500">{line.notes}</p>
-                        ) : null}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeLine(line.cartLineId)}
-                        className="rounded-lg bg-white p-2 text-slate-500"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="rounded-lg bg-white p-2"
-                          onClick={() => updateLineQuantity(line.cartLineId, -1)}
-                        >
-                          <Minus size={14} />
-                        </button>
-                        <span className="w-6 text-center font-bold">{line.quantity}</span>
-                        <button
-                          type="button"
-                          className="rounded-lg bg-[#a73308] p-2 text-white"
-                          onClick={() => updateLineQuantity(line.cartLineId, 1)}
-                        >
-                          <Plus size={14} />
-                        </button>
-                      </div>
-                      <span className="font-bold">{formatMoney(line.lineTotal)}</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="mt-4 flex justify-between border-t border-dashed border-slate-200 pt-4 text-lg font-bold">
-              <span>{t.total}</span>
-              <span className="text-[#a73308]">{formatMoney(cartTotal)}</span>
-            </div>
-
-            <button
-              type="button"
-              disabled={submitting || cartLines.length === 0}
-              onClick={() => void handleSubmit()}
-              className="mt-6 h-14 w-full rounded-2xl bg-[#18222f] text-lg font-bold text-white disabled:opacity-50"
-            >
-              {submitting ? t.submitting : submitLabel}
-            </button>
-          </aside>
+          <ProductGrid
+            loading={loading}
+            menuItems={menuItems}
+            selectedMenu={selectedMenu}
+            language={language}
+            variant={variant}
+            t={t}
+            onOpenItem={openItem}
+            onBack={handleBackToMenus}
+          />
+          <DraftCartPanel
+            lines={cartLines}
+            cartTotal={cartTotal}
+            cartCount={cartCount}
+            submitting={submitting}
+            submitLabel={submitLabel}
+            language={language}
+            t={t}
+            onEditLine={editLine}
+            onRemoveLine={removeLine}
+            onUpdateQuantity={updateLineQuantity}
+            onSubmit={() => void handleSubmit()}
+          />
         </section>
       )}
 
       {customizing ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[30px] bg-white p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-                  {t.customize}
-                </p>
-                <h3 className="mt-1 text-2xl font-bold">
-                  {localizeMenuItemName(customizing.item, language)}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCustomizing(null)}
-                className="rounded-full border border-slate-200 p-2 text-slate-500"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {(customizing.item.modifierGroups ?? []).map((group) => {
-                const selected = selectedOptionsByGroup(group, customizing.selectedOptionIds);
-                return (
-                  <div key={group.id} className="rounded-2xl border border-slate-200 p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <div>
-                        <h4 className="font-bold">{localizeModifierGroupName(group, language)}</h4>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {group.required ? t.required : t.optional} -{' '}
-                          {replaceTemplate(t.upToCount, { count: group.maxSelections })}
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                        {selected.length}/{group.maxSelections}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      {group.options.map((option) => {
-                        const active = customizing.selectedOptionIds.includes(option.id);
-                        return (
-                          <button
-                            key={option.id}
-                            type="button"
-                            onClick={() => toggleGroupOption(group, option, setCustomizing)}
-                            className={[
-                              'flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition',
-                              active
-                                ? 'border-[#cf6d43] bg-[#fff0e8] text-[#8d3c19]'
-                                : 'border-slate-200 bg-white text-slate-700',
-                            ].join(' ')}
-                          >
-                            <span>
-                              <span className="block font-semibold">
-                                {localizeModifierOptionName(option, language)}
-                              </span>
-                              {option.description ? (
-                                <span className="mt-1 block text-xs opacity-80">
-                                  {option.description}
-                                </span>
-                              ) : null}
-                            </span>
-                            <span className="flex items-center gap-2 font-semibold">
-                              {option.priceDelta > 0
-                                ? `+${formatMoney(option.priceDelta)}`
-                                : t.included}
-                              {active ? <Check size={16} /> : null}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-
-              <div className="rounded-2xl border border-slate-200 p-4">
-                <p className="mb-3 font-bold">{t.kitchenNote}</p>
-                <textarea
-                  value={customizing.notes}
-                  onChange={(event) =>
-                    setCustomizing((current) =>
-                      current ? { ...current, notes: event.target.value } : current,
-                    )
-                  }
-                  placeholder={t.kitchenNotePlaceholder}
-                  className="min-h-28 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold">{t.lineTotal}</p>
-                  <p className="text-xl font-bold text-[#a73308]">
-                    {formatMoney(
-                      (customizing.item.price +
-                        findSelectedOptions(customizing.item, customizing.selectedOptionIds).reduce(
-                          (sum, option) => sum + option.priceDelta,
-                          0,
-                        )) * customizing.quantity,
-                    )}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="rounded-lg bg-slate-100 p-2"
-                    onClick={() =>
-                      setCustomizing((current) =>
-                        current
-                          ? { ...current, quantity: Math.max(1, current.quantity - 1) }
-                          : current,
-                      )
-                    }
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <span className="w-8 text-center font-bold">{customizing.quantity}</span>
-                  <button
-                    type="button"
-                    className="rounded-lg bg-[#a73308] p-2 text-white"
-                    onClick={() =>
-                      setCustomizing((current) =>
-                        current ? { ...current, quantity: current.quantity + 1 } : current,
-                      )
-                    }
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={saveCustomization}
-                className="w-full rounded-2xl bg-[#18222f] px-5 py-4 text-sm font-bold text-white"
-              >
-                {customizing.cartLineId ? t.saveLine : t.addToTicket}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ModifierModal
+          customizing={customizing}
+          language={language}
+          t={t}
+          onSave={saveCustomization}
+          onClose={handleCloseCustomizer}
+          onToggleOption={handleToggleOption}
+          onUpdateQuantity={handleUpdateQuantity}
+          onUpdateNotes={handleUpdateNotes}
+        />
       ) : null}
     </div>
   );

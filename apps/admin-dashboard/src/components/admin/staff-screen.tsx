@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AlertCircle, Plus, RefreshCw, Save } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, Plus, Save } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { CreateStaffInput, StaffMemberDTO, UpdateStaffInput, UserRole } from '@repo/shared-types';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useI18n } from '@/hooks/use-i18n';
 import { useAppStore } from '@/store/app.store';
-import { createStaff, listStaff, updateStaff } from '@/services/staff.service';
+import { useStaff } from '@/hooks/use-admin-queries';
+import { createStaff, updateStaff } from '@/services/staff.service';
+import { StaffFormPersonal, StaffFormSecurity, StaffFormPayroll } from './staff-sections';
+import { TextField, TextAreaField, FormSection } from './staff-sections';
 
 type SalaryType = 'MONTHLY' | 'DAILY';
 
@@ -27,9 +31,6 @@ type StaffDraft = {
   notes: string;
   isActive: boolean;
 };
-
-const inputClassName =
-  'w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#cf6d43] focus:ring-2 focus:ring-[#cf6d43]/10';
 
 function emptyDraft(): StaffDraft {
   return {
@@ -125,134 +126,19 @@ function buildUpdatePayload(draft: StaffDraft): UpdateStaffInput {
   };
 }
 
-function TextField(props: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  placeholder?: string;
-}) {
-  return (
-    <label className="space-y-2">
-      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-        {props.label}
-      </span>
-      <input
-        className={inputClassName}
-        type={props.type ?? 'text'}
-        value={props.value}
-        placeholder={props.placeholder}
-        onChange={(event) => props.onChange(event.target.value)}
-      />
-    </label>
-  );
-}
-
-function TextAreaField(props: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="space-y-2">
-      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-        {props.label}
-      </span>
-      <textarea
-        className={`${inputClassName} min-h-[110px] resize-y`}
-        value={props.value}
-        onChange={(event) => props.onChange(event.target.value)}
-      />
-    </label>
-  );
-}
-
-function SelectField(props: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  children: ReactNode;
-}) {
-  return (
-    <label className="space-y-2">
-      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-        {props.label}
-      </span>
-      <select className={inputClassName} value={props.value} onChange={(event) => props.onChange(event.target.value)}>
-        {props.children}
-      </select>
-    </label>
-  );
-}
-
-function ToggleField(props: {
-  label: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  hint: string;
-}) {
-  return (
-    <div className="space-y-2">
-      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-        {props.label}
-      </span>
-      <label className="flex h-[52px] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-700">
-        <input type="checkbox" checked={props.checked} onChange={(event) => props.onChange(event.target.checked)} />
-        <span>{props.hint}</span>
-      </label>
-    </div>
-  );
-}
-
-function FormSection(props: { title: string; description: string; children: ReactNode }) {
-  return (
-    <div className="rounded-[28px] border border-slate-200 bg-slate-50/70 p-4">
-      <div className="mb-4">
-        <h4 className="text-sm font-semibold text-slate-900">{props.title}</h4>
-        <p className="mt-1 text-xs text-slate-500">{props.description}</p>
-      </div>
-      <div className="grid gap-4">{props.children}</div>
-    </div>
-  );
-}
-
 export function StaffScreen() {
   const { t, formatCurrency, formatDateTime, formatNumber, roleLabel } = useI18n();
   const restaurantId = useAppStore((state) => state.restaurantId);
-  const [staff, setStaff] = useState<StaffMemberDTO[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: staff = [], isLoading: loading, error: fetchError } = useStaff();
   const [savingCreate, setSavingCreate] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const [createDraft, setCreateDraft] = useState<StaffDraft>(emptyDraft);
   const [editDraft, setEditDraft] = useState<StaffDraft>(emptyDraft);
 
-  async function load() {
-    if (!restaurantId) {
-      setStaff([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const records = await listStaff(restaurantId);
-      setStaff(records);
-      setSelectedStaffId((current) =>
-        current && records.some((member) => member.id === current) ? current : (records[0]?.id ?? null),
-      );
-    } catch (nextError) {
-      setError(getApiErrorMessage(nextError, t('staff.title')));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void load();
-  }, [restaurantId]);
+  const error = fetchError ? (fetchError as Error).message : apiError;
 
   const selectedStaff = useMemo(
     () => staff.find((member) => member.id === selectedStaffId) ?? null,
@@ -262,6 +148,16 @@ export function StaffScreen() {
   useEffect(() => {
     setEditDraft(toDraft(selectedStaff));
   }, [selectedStaff]);
+
+  useEffect(() => {
+    if (staff.length > 0) {
+      setSelectedStaffId((current) =>
+        current && staff.some((member) => member.id === current)
+          ? current
+          : staff[0]!.id,
+      );
+    }
+  }, [staff]);
 
   const stats = useMemo(
     () => ({
@@ -274,26 +170,32 @@ export function StaffScreen() {
     [staff],
   );
 
+  async function invalidateAndSync(createdId?: string) {
+    await queryClient.invalidateQueries({ queryKey: ['admin', 'staff', restaurantId] });
+    if (createdId) {
+      setSelectedStaffId(createdId);
+    }
+  }
+
   async function handleCreate() {
     if (!restaurantId) {
-      setError(t('staff.title'));
+      setApiError(t('staff.title'));
       return;
     }
 
     if (!createDraft.name.trim() || !createDraft.staffCode.trim() || !createDraft.password.trim()) {
-      setError(t('staff.requiredFields'));
+      setApiError(t('staff.requiredFields'));
       return;
     }
 
     try {
       setSavingCreate(true);
-      setError(null);
+      setApiError(null);
       const created = await createStaff(buildCreatePayload(restaurantId, createDraft));
       setCreateDraft(emptyDraft());
-      await load();
-      setSelectedStaffId(created.id);
+      await invalidateAndSync(created.id);
     } catch (nextError) {
-      setError(getApiErrorMessage(nextError, t('staff.add')));
+      setApiError(getApiErrorMessage(nextError, t('staff.add')));
     } finally {
       setSavingCreate(false);
     }
@@ -305,40 +207,20 @@ export function StaffScreen() {
     }
 
     if (!editDraft.name.trim() || !editDraft.staffCode.trim()) {
-      setError(t('staff.requiredFields'));
+      setApiError(t('staff.requiredFields'));
       return;
     }
 
     try {
       setSavingEdit(true);
-      setError(null);
+      setApiError(null);
       await updateStaff(selectedStaff.id, buildUpdatePayload(editDraft));
-      await load();
+      await invalidateAndSync();
     } catch (nextError) {
-      setError(getApiErrorMessage(nextError, t('staff.editAccount')));
+      setApiError(getApiErrorMessage(nextError, t('staff.editAccount')));
     } finally {
       setSavingEdit(false);
     }
-  }
-
-  function renderRoleOptions(value: UserRole, onChange: (value: UserRole) => void) {
-    return (
-      <SelectField label={t('common.role')} value={value} onChange={(next) => onChange(next as UserRole)}>
-        <option value="ADMIN">{roleLabel('ADMIN')}</option>
-        <option value="CHEF">{roleLabel('CHEF')}</option>
-        <option value="CASHIER">{roleLabel('CASHIER')}</option>
-        <option value="WAITER">{roleLabel('WAITER')}</option>
-      </SelectField>
-    );
-  }
-
-  function renderSalaryOptions(value: SalaryType, onChange: (value: SalaryType) => void) {
-    return (
-      <SelectField label={t('staff.salaryType')} value={value} onChange={(next) => onChange(next as SalaryType)}>
-        <option value="MONTHLY">{t('staff.salaryMonthly')}</option>
-        <option value="DAILY">{t('staff.salaryDaily')}</option>
-      </SelectField>
-    );
   }
 
   return (
@@ -348,8 +230,11 @@ export function StaffScreen() {
           <h2>{t('staff.title')}</h2>
           <p>{t('staff.subtitle')}</p>
         </div>
-        <button type="button" className="ghost-btn" onClick={() => void load()}>
-          <RefreshCw size={16} />
+        <button
+          type="button"
+          className="ghost-btn"
+          onClick={() => void queryClient.invalidateQueries({ queryKey: ['admin', 'staff', restaurantId] })}
+        >
           <span>{t('menu.refresh')}</span>
         </button>
       </section>
@@ -393,85 +278,39 @@ export function StaffScreen() {
             </div>
           </div>
 
-          <FormSection title={t('staff.personalInfo')} description={t('staff.personalInfoDescription')}>
-            <TextField
-              label={t('staff.fullName')}
-              value={createDraft.name}
-              onChange={(value) => setCreateDraft((current) => ({ ...current, name: value }))}
-            />
-            <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                label={t('staff.phone')}
-                value={createDraft.phone}
-                onChange={(value) => setCreateDraft((current) => ({ ...current, phone: value }))}
-              />
-              <TextField
-                label={t('staff.nationalId')}
-                value={createDraft.nationalId}
-                onChange={(value) => setCreateDraft((current) => ({ ...current, nationalId: value }))}
-              />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                label={t('staff.birthDate')}
-                type="date"
-                value={createDraft.birthDate}
-                onChange={(value) => setCreateDraft((current) => ({ ...current, birthDate: value }))}
-              />
-              <TextField
-                label={t('staff.hireDate')}
-                type="date"
-                value={createDraft.hireDate}
-                onChange={(value) => setCreateDraft((current) => ({ ...current, hireDate: value }))}
-              />
-            </div>
-            <TextField
-              label={t('staff.address')}
-              value={createDraft.address}
-              onChange={(value) => setCreateDraft((current) => ({ ...current, address: value }))}
-            />
-          </FormSection>
-
-          <FormSection title={t('staff.securityAccess')} description={t('staff.securityAccessDescription')}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                label={t('staff.staffCode')}
-                value={createDraft.staffCode}
-                onChange={(value) => setCreateDraft((current) => ({ ...current, staffCode: value }))}
-              />
-              {renderRoleOptions(createDraft.role, (value) =>
-                setCreateDraft((current) => ({ ...current, role: value })),
-              )}
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                label={t('common.password')}
-                type="password"
-                value={createDraft.password}
-                onChange={(value) => setCreateDraft((current) => ({ ...current, password: value }))}
-              />
-              <ToggleField
-                label={t('staff.accountStatus')}
-                checked={createDraft.isActive}
-                hint={createDraft.isActive ? t('staff.active') : t('staff.inactive')}
-                onChange={(checked) => setCreateDraft((current) => ({ ...current, isActive: checked }))}
-              />
-            </div>
-          </FormSection>
-
-          <FormSection title={t('staff.payroll')} description={t('staff.payrollDescription')}>
-            <div className="grid gap-4 md:grid-cols-2">
-              {renderSalaryOptions(createDraft.salaryType, (value) =>
-                setCreateDraft((current) => ({ ...current, salaryType: value })),
-              )}
-              <TextField
-                label={t('staff.salaryAmount')}
-                type="number"
-                value={createDraft.salaryAmount}
-                onChange={(value) => setCreateDraft((current) => ({ ...current, salaryAmount: value }))}
-              />
-            </div>
-          </FormSection>
+          <StaffFormPersonal
+            values={{
+              name: createDraft.name,
+              phone: createDraft.phone,
+              nationalId: createDraft.nationalId,
+              birthDate: createDraft.birthDate,
+              hireDate: createDraft.hireDate,
+              address: createDraft.address,
+            }}
+            onChange={(field, value) =>
+              setCreateDraft((current) => ({ ...current, [field]: value }))
+            }
+          />
+          <StaffFormSecurity
+            values={{
+              staffCode: createDraft.staffCode,
+              role: createDraft.role,
+              password: createDraft.password,
+              isActive: createDraft.isActive,
+            }}
+            onChange={(field, value) =>
+              setCreateDraft((current) => ({ ...current, [field]: value }))
+            }
+          />
+          <StaffFormPayroll
+            values={{
+              salaryType: createDraft.salaryType,
+              salaryAmount: createDraft.salaryAmount,
+            }}
+            onChange={(field, value) =>
+              setCreateDraft((current) => ({ ...current, [field]: value }))
+            }
+          />
 
           <FormSection title={t('staff.additionalInfo')} description={t('staff.additionalInfoDescription')}>
             <div className="grid gap-4 md:grid-cols-2">
@@ -583,87 +422,40 @@ export function StaffScreen() {
 
             {selectedStaff ? (
               <div className="mt-5 grid gap-4">
-                <FormSection title={t('staff.personalInfo')} description={t('staff.personalInfoDescription')}>
-                  <TextField
-                    label={t('staff.fullName')}
-                    value={editDraft.name}
-                    onChange={(value) => setEditDraft((current) => ({ ...current, name: value }))}
-                  />
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <TextField
-                      label={t('staff.phone')}
-                      value={editDraft.phone}
-                      onChange={(value) => setEditDraft((current) => ({ ...current, phone: value }))}
-                    />
-                    <TextField
-                      label={t('staff.nationalId')}
-                      value={editDraft.nationalId}
-                      onChange={(value) =>
-                        setEditDraft((current) => ({ ...current, nationalId: value }))
-                      }
-                    />
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <TextField
-                      label={t('staff.birthDate')}
-                      type="date"
-                      value={editDraft.birthDate}
-                      onChange={(value) => setEditDraft((current) => ({ ...current, birthDate: value }))}
-                    />
-                    <TextField
-                      label={t('staff.hireDate')}
-                      type="date"
-                      value={editDraft.hireDate}
-                      onChange={(value) => setEditDraft((current) => ({ ...current, hireDate: value }))}
-                    />
-                  </div>
-                  <TextField
-                    label={t('staff.address')}
-                    value={editDraft.address}
-                    onChange={(value) => setEditDraft((current) => ({ ...current, address: value }))}
-                  />
-                </FormSection>
-
-                <FormSection title={t('staff.securityAccess')} description={t('staff.securityAccessDescription')}>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <TextField
-                      label={t('staff.staffCode')}
-                      value={editDraft.staffCode}
-                      onChange={(value) => setEditDraft((current) => ({ ...current, staffCode: value }))}
-                    />
-                    {renderRoleOptions(editDraft.role, (value) =>
-                      setEditDraft((current) => ({ ...current, role: value })),
-                    )}
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <TextField
-                      label={t('staff.newPassword')}
-                      type="password"
-                      value={editDraft.password}
-                      onChange={(value) => setEditDraft((current) => ({ ...current, password: value }))}
-                    />
-                    <ToggleField
-                      label={t('staff.accountStatus')}
-                      checked={editDraft.isActive}
-                      hint={editDraft.isActive ? t('staff.active') : t('staff.inactive')}
-                      onChange={(checked) => setEditDraft((current) => ({ ...current, isActive: checked }))}
-                    />
-                  </div>
-                </FormSection>
-
-                <FormSection title={t('staff.payroll')} description={t('staff.payrollDescription')}>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {renderSalaryOptions(editDraft.salaryType, (value) =>
-                      setEditDraft((current) => ({ ...current, salaryType: value })),
-                    )}
-                    <TextField
-                      label={t('staff.salaryAmount')}
-                      type="number"
-                      value={editDraft.salaryAmount}
-                      onChange={(value) => setEditDraft((current) => ({ ...current, salaryAmount: value }))}
-                    />
-                  </div>
-                </FormSection>
+                <StaffFormPersonal
+                  values={{
+                    name: editDraft.name,
+                    phone: editDraft.phone,
+                    nationalId: editDraft.nationalId,
+                    birthDate: editDraft.birthDate,
+                    hireDate: editDraft.hireDate,
+                    address: editDraft.address,
+                  }}
+                  onChange={(field, value) =>
+                    setEditDraft((current) => ({ ...current, [field]: value }))
+                  }
+                />
+                <StaffFormSecurity
+                  isEdit
+                  values={{
+                    staffCode: editDraft.staffCode,
+                    role: editDraft.role,
+                    password: editDraft.password,
+                    isActive: editDraft.isActive,
+                  }}
+                  onChange={(field, value) =>
+                    setEditDraft((current) => ({ ...current, [field]: value }))
+                  }
+                />
+                <StaffFormPayroll
+                  values={{
+                    salaryType: editDraft.salaryType,
+                    salaryAmount: editDraft.salaryAmount,
+                  }}
+                  onChange={(field, value) =>
+                    setEditDraft((current) => ({ ...current, [field]: value }))
+                  }
+                />
 
                 <FormSection title={t('staff.additionalInfo')} description={t('staff.additionalInfoDescription')}>
                   <div className="grid gap-4 md:grid-cols-2">

@@ -2,6 +2,7 @@ import axios, {
   AxiosError,
   type InternalAxiosRequestConfig,
 } from 'axios';
+import { CSRF_CONFIG } from '@repo/shared-types';
 import { useAuthStore } from '@/auth/store';
 import type { AuthSession } from '@/auth/types';
 
@@ -13,10 +14,12 @@ const baseURL = process.env.NEXT_PUBLIC_API_URL ?? '/api';
 
 export const http = axios.create({
   baseURL,
+  ...CSRF_CONFIG,
 });
 
 const refreshClient = axios.create({
   baseURL,
+  ...CSRF_CONFIG,
 });
 
 let interceptorsReady = false;

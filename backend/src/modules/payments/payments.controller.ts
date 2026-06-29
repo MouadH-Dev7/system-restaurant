@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
 import { PaymentMethod, PaymentStatus, UserRole } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { IdParamDto } from '../../common/dto/uuid-param.dto';
@@ -16,6 +16,7 @@ export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   create(@Body() input: CreatePaymentDto, @CurrentUser() user: AuthenticatedUser) {
     return this.paymentsService.create({ ...input, actor: user });
   }

@@ -17,6 +17,10 @@ export const useGuestOrdersStore = create<GuestOrdersState>((set) => ({
   setOrders: (orders) => set({ orders }),
   upsertOrder: (order) =>
     set((state) => {
+      if (!order.id) {
+        return state;
+      }
+
       const index = state.orders.findIndex((item) => item.id === order.id);
       const next = [...state.orders];
 

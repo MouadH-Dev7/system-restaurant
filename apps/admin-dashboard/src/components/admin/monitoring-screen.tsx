@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Activity, AlertTriangle, CheckCircle2, Database, Layers, Radio, RefreshCw, Server, ShieldCheck, Terminal } from 'lucide-react';
+import { Activity, AlertTriangle, Database, Layers, Radio, RefreshCw, Server, ShieldCheck, Terminal } from 'lucide-react';
 import type {
   AuditLogDTO,
   OrdersSummaryDTO,
@@ -74,7 +74,7 @@ export function MonitoringScreen() {
       }
       setError(null);
 
-      const [nextLogs, nextPrinters, nextHistory, nextSummary, nextHealth] = await Promise.all([
+      const [logsResult, nextPrinters, nextHistory, nextSummary, nextHealth] = await Promise.all([
         listLogs(activeRestaurantId),
         listPrinters(activeRestaurantId),
         listPrinterHistory(activeRestaurantId),
@@ -82,7 +82,7 @@ export function MonitoringScreen() {
         getSystemHealth(),
       ]);
 
-      setLogs(nextLogs);
+      setLogs(logsResult.data);
       setPrinters(nextPrinters);
       setHistory(nextHistory);
       setSummary(nextSummary);

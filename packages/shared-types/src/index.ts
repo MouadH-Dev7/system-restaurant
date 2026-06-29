@@ -36,8 +36,6 @@ export type DiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT';
 
 export type DiscountApprovalStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
 
-export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-
 export type PrintJobType =
   | 'RECEIPT'
   | 'KITCHEN_TICKET'
@@ -93,6 +91,12 @@ export type QueueJobType =
   | 'BACKUP_SETTINGS';
 
 export type InventoryStatus = 'HEALTHY' | 'LOW_STOCK' | 'CRITICAL';
+
+export type InventoryUnit = 'KG' | 'GRAM' | 'LITER' | 'ML' | 'PIECE' | 'PACK';
+
+export type ConsumptionType = 'AUTO_DEDUCTION' | 'MANUAL_ADJUSTMENT';
+
+export type SupplierStatus = 'ACTIVE' | 'INACTIVE';
 
 export type CustomerTier = 'NEW' | 'REGULAR' | 'VIP';
 
@@ -255,6 +259,7 @@ export type MenuItemDTO = {
   menuId: string;
   restaurantId: string;
   modifierGroups?: ModifierGroupDTO[];
+  ingredients?: MenuItemIngredientDTO[];
 };
 
 export type OrderContextDTO = {
@@ -425,8 +430,6 @@ export type TableBillingDTO = {
   discounts: DiscountDTO[];
 };
 
-export type SplitBillMode = 'EQUAL' | 'ITEMS' | 'ORDERS';
-
 export type PrintJobDTO = {
   id: string;
   jobId: string | null;
@@ -532,14 +535,107 @@ export type InventoryItemDTO = {
   id: string;
   restaurantId: string;
   name: string;
-  unit: string;
+  unit: InventoryUnit;
   stockLevel: number;
   minAlertLevel: number;
   unitPrice: number;
-  supplier: string;
+  supplierId: string | null;
+  supplierName: string | null;
   status: InventoryStatus;
   createdAt: string;
   updatedAt: string;
+};
+
+export type SupplierDTO = {
+  id: string;
+  restaurantId: string;
+  name: string;
+  contactName: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  supplyingCategories: string | null;
+  status: SupplierStatus;
+  categoryIds: string[];
+  categoryNames: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SupplierCategoryDTO = {
+  id: string;
+  restaurantId: string;
+  name: string;
+  createdAt: string;
+};
+
+export type CreateSupplierCategoryInput = {
+  restaurantId: string;
+  name: string;
+};
+
+export type UpdateSupplierCategoryInput = {
+  name?: string;
+};
+
+export type SupplyLogDTO = {
+  id: string;
+  inventoryItemId: string;
+  inventoryItemName: string;
+  supplierId: string | null;
+  supplierName: string | null;
+  quantityAdded: number;
+  unitPrice: number;
+  receivedAt: string;
+};
+
+export type ModifierIngredientDTO = {
+  id: string;
+  modifierOptionId: string;
+  modifierOptionName: string;
+  inventoryItemId: string;
+  inventoryItemName: string;
+  inventoryItemUnit: InventoryUnit;
+  quantityRequired: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateModifierIngredientInput = {
+  modifierOptionId: string;
+  inventoryItemId: string;
+  quantityRequired: number;
+};
+
+export type UpdateModifierIngredientInput = {
+  inventoryItemId?: string;
+  quantityRequired?: number;
+};
+
+export type MenuItemIngredientDTO = {
+  id: string;
+  menuItemId: string;
+  inventoryItemId: string;
+  inventoryItemName: string;
+  inventoryItemUnit: InventoryUnit;
+  quantityRequired: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type InventoryConsumptionLogDTO = {
+  id: string;
+  restaurantId: string;
+  inventoryItemId: string;
+  inventoryItemName: string;
+  unit: InventoryUnit | null;
+  orderId: string | null;
+  dailyOrderNumber: number | null;
+  orderType: OrderType | null;
+  tableName: string | null;
+  quantityUsed: number;
+  type: ConsumptionType;
+  createdAt: string;
 };
 
 export type CustomerProfileDTO = {
@@ -555,6 +651,13 @@ export type CustomerProfileDTO = {
   lastVisitAt: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type PaginatedResponse<T> = {
+  data: T[];
+  total: number;
+  totalPages: number;
+  currentPage: number;
 };
 
 export type AuditLogDTO = {
@@ -609,32 +712,6 @@ export type DiscountDTO = {
   approvalStatus: DiscountApprovalStatus;
   approvedBy: string | null;
   createdBy: string | null;
-  createdAt: string;
-};
-
-export type PaymentReportRowDTO = {
-  paymentId: string;
-  orderId: string;
-  dailyOrderNumber?: number | null;
-  amount: number;
-  refundedAmount: number;
-  netAmount: number;
-  paymentMethod: PaymentMethod;
-  status: FinancialPaymentStatus;
-  createdBy?: string | null;
-  createdAt: string;
-};
-
-export type DiscountReportRowDTO = {
-  discountId: string;
-  orderId: string;
-  dailyOrderNumber?: number | null;
-  type: DiscountType;
-  value: number;
-  reason: string;
-  approvalStatus: DiscountApprovalStatus;
-  createdBy?: string | null;
-  approvedBy?: string | null;
   createdAt: string;
 };
 
@@ -936,20 +1013,64 @@ export type CreateReportExportJobInput = {
 export type CreateInventoryItemInput = {
   restaurantId: string;
   name: string;
-  unit: string;
+  unit: InventoryUnit;
   stockLevel: number;
   minAlertLevel: number;
   unitPrice: number;
-  supplier: string;
+  supplierId?: string | null;
 };
 
 export type UpdateInventoryItemInput = {
   name?: string;
-  unit?: string;
+  unit?: InventoryUnit;
   stockLevel?: number;
   minAlertLevel?: number;
   unitPrice?: number;
-  supplier?: string;
+  supplierId?: string | null;
+};
+
+export type CreateSupplierInput = {
+  restaurantId: string;
+  name: string;
+  contactName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  supplyingCategories?: string | null;
+  status?: SupplierStatus;
+  categoryIds?: string[];
+};
+
+export type UpdateSupplierInput = {
+  name?: string;
+  contactName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  supplyingCategories?: string | null;
+  status?: SupplierStatus;
+  categoryIds?: string[];
+};
+
+export type CreateMenuItemIngredientInput = {
+  menuItemId: string;
+  inventoryItemId: string;
+  quantityRequired: number;
+};
+
+export type UpdateMenuItemIngredientInput = {
+  quantityRequired?: number;
+  inventoryItemId?: string;
+};
+
+export type InventoryConsumptionLogQuery = {
+  restaurantId: string;
+  inventoryItemId?: string;
+  startDate?: string;
+  endDate?: string;
+  type?: ConsumptionType;
+  orderType?: string;
+  dailyOrderNumber?: number;
 };
 
 export type CreateCustomerProfileInput = {
@@ -1119,11 +1240,17 @@ export const REDIS_ORDER_CHANNELS = {
   CANCELLED: 'orders.cancelled',
 } as const;
 
-export type RedisOrderChannel = (typeof REDIS_ORDER_CHANNELS)[keyof typeof REDIS_ORDER_CHANNELS];
-
 export type RealtimeOrderPayload = {
   event: RealtimeEvent;
   order: OrderResponse;
+};
+
+export type RealtimeOrderDelta = {
+  event: RealtimeEvent;
+  orderId: string;
+  status: OrderResponse['status'];
+  version: number;
+  updatedAt: string;
 };
 
 export type WaiterCallPayload = {
@@ -1133,22 +1260,11 @@ export type WaiterCallPayload = {
   requestedAt: string;
 };
 
-export type WaiterCallNotificationPayload = {
-  event: 'CALL_WAITER';
-  call: WaiterCallPayload;
-};
-
 export type WaiterNotificationRealtimePayload = {
   notification: WaiterNotificationDTO;
 };
 
 // Shared constants
-
-/**
- * Legacy constant used to model walk-in/takeaway orders as a virtual table.
- * Keep temporarily for compatibility until OrderType migration is completed.
- */
-export const WALK_IN_TABLE_ID = 'c9999999-9999-4999-8999-999999999999';
 
 // Shared helpers
 
@@ -1205,6 +1321,8 @@ export function getOrderTypeLabel(
   };
 }
 
-export function formatDailyOrderNumber(order: Pick<OrderResponse, 'dailyOrderNumber'>) {
-  return String(order.dailyOrderNumber);
-}
+export const CSRF_CONFIG = {
+  withCredentials: true,
+  xsrfCookieName: 'XSRF-TOKEN' as const,
+  xsrfHeaderName: 'X-XSRF-TOKEN' as const,
+} as const;

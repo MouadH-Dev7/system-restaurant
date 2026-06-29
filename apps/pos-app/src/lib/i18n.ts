@@ -8,9 +8,11 @@ import type {
   PaymentMethod as ApiPaymentMethod,
 } from '@repo/shared-types';
 import type { ActivityItem, DiningTable, NavItem, PaymentMethod, PosScreen } from '@/types/pos';
-import type { PosLanguage } from '@/store/pos-ui.store';
+import type { Language } from '@repo/i18n';
 
-type PosDictionary = {
+type PosLanguage = Language;
+
+export type PosDictionary = {
   brand: string;
   operatorLabel: string;
   stationLabel: string;
@@ -847,12 +849,7 @@ export function posDir(language: PosLanguage) {
   return language === 'ar' ? 'rtl' : 'ltr';
 }
 
-export function replaceTemplate(template: string, values: Record<string, string | number>) {
-  return Object.entries(values).reduce(
-    (result, [key, value]) => result.replace(`{{${key}}}`, String(value)),
-    template,
-  );
-}
+export { replaceTemplate } from '@repo/i18n';
 
 function localizedName<
   T extends { name: string; nameEn?: string | null; nameFr?: string | null; nameAr?: string | null },

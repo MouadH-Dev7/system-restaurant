@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import {
   REALTIME_EVENTS,
   type RealtimeEvent,
+  type RealtimeOrderDelta,
   type TableOrdersGroupDTO,
   type WaiterCallPayload,
   type WaiterNotificationRealtimePayload,
@@ -13,7 +14,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { playWaiterAlert, unlockWaiterAudio } from '@/lib/play-waiter-alert';
 import { replaceTemplate, waiterT } from '@/lib/i18n';
 import { listMenuItems, listMenus } from '@/services/menu.service';
-import { listWaiterOrders } from '@/services/orders.service';
+import { getWaiterOrder, listWaiterOrders } from '@/services/orders.service';
 import { listRestaurantTables } from '@/services/tables.service';
 import { listWaiterNotifications } from '@/services/waiter-notifications.service';
 import { useWaiterStore } from '@/store/waiter.store';
@@ -70,6 +71,8 @@ export function useWaiterBootstrap({ enabled, restaurantId, reloadKey }: UseWait
     }
 
     const activeRestaurantId = restaurantId;
+    const controller = new AbortController();
+    const { signal } = controller;
     let active = true;
 
     async function load() {
@@ -78,11 +81,11 @@ export function useWaiterBootstrap({ enabled, restaurantId, reloadKey }: UseWait
 
       try {
         const [nextTables, menus, groupedOrders, waiterNotifications, menuItems] = await Promise.all([
-          loadRequiredResource('tables', () => listRestaurantTables(activeRestaurantId)),
-          loadRequiredResource('menus', () => listMenus(activeRestaurantId)),
-          loadOptionalResource(() => listWaiterOrders(activeRestaurantId, 'table'), [] as TableOrdersGroupDTO[]),
-          loadOptionalResource(() => listWaiterNotifications(), []),
-          loadOptionalResource(() => listMenuItems(activeRestaurantId), []),
+          loadRequiredResource('tables', () => listRestaurantTables(activeRestaurantId, signal)),
+          loadRequiredResource('menus', () => listMenus(activeRestaurantId, signal)),
+          loadOptionalResource(() => listWaiterOrders(activeRestaurantId, 'table', signal), [] as TableOrdersGroupDTO[]),
+          loadOptionalResource(() => listWaiterNotifications(signal), []),
+          loadOptionalResource(() => listMenuItems(activeRestaurantId, undefined, signal), []),
         ]);
 
         if (!active) {
@@ -116,6 +119,7 @@ export function useWaiterBootstrap({ enabled, restaurantId, reloadKey }: UseWait
 
     return () => {
       active = false;
+      controller.abort();
     };
   }, [
     enabled,
@@ -128,30 +132,53 @@ export function useWaiterBootstrap({ enabled, restaurantId, reloadKey }: UseWait
     setWaiterNotifications,
   ]);
 
+  const abortRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleOrderEvent = useCallback(
-    (event: RealtimeEvent, order: Parameters<typeof upsertOrder>[0]) => {
-      upsertOrder(order);
-
-      if (order.status === 'PAID' || order.status === 'CANCELLED') {
-        clearDraft(order.tableId);
+    (event: RealtimeEvent, delta: RealtimeOrderDelta) => {
+      const orderId = delta.orderId;
+      if (!orderId) {
+        return;
       }
 
-      if (event === REALTIME_EVENTS.ORDER_READY) {
-        playWaiterAlert();
-        const copy = waiterT(language);
-        const table = tables.find((entry) => entry.id === order.tableId);
-        if (table) {
-          selectTable(table.id);
-          window.alert(
-            replaceTemplate(copy.orderReadyTable, {
-              ticket: order.displayOrderId ?? order.dailyOrderNumber,
-              table: table.number,
-            }),
-          );
-        }
-      }
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      abortRef.current?.abort();
 
-      setLastSyncAt(new Date());
+      debounceRef.current = setTimeout(() => {
+        const controller = new AbortController();
+        abortRef.current = controller;
+
+        void getWaiterOrder(orderId)
+          .then((freshOrder) => {
+            upsertOrder(freshOrder);
+
+            if (freshOrder.status === 'PAID' || freshOrder.status === 'CANCELLED') {
+              clearDraft(freshOrder.tableId);
+            }
+
+            if (event === REALTIME_EVENTS.ORDER_READY) {
+              playWaiterAlert();
+              const copy = waiterT(language);
+              const table = tables.find((entry) => entry.id === freshOrder.tableId);
+              if (table) {
+                selectTable(table.id);
+                window.alert(
+                  replaceTemplate(copy.orderReadyTable, {
+                    ticket: freshOrder.displayOrderId ?? freshOrder.dailyOrderNumber,
+                    table: table.number,
+                  }),
+                );
+              }
+            }
+
+            setLastSyncAt(new Date());
+          })
+          .catch((err) => {
+            if (err instanceof DOMException && err.name === 'AbortError') return;
+            console.error('[useWaiterBootstrap] Failed to sync order from delta:', err);
+          });
+      }, 100);
     },
     [clearDraft, language, selectTable, setLastSyncAt, tables, upsertOrder],
   );

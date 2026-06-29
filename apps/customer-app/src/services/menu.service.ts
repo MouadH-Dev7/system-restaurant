@@ -8,7 +8,7 @@ export async function getMenus(restaurantId: string) {
   return data;
 }
 
-export async function getMenuItems(restaurantId: string, menuId?: string) {
+export async function getMenuItems(restaurantId: string, menuId?: string, signal?: AbortSignal) {
   const { data } = await http.get<MenuItem[]>('/public/menu-items', {
     params: {
       restaurantId,
@@ -16,6 +16,7 @@ export async function getMenuItems(restaurantId: string, menuId?: string) {
       availableOnly: 'true',
       activeMenusOnly: 'true',
     },
+    signal,
   });
   return data;
 }

@@ -11,6 +11,9 @@ import {
 import {
   AuditLogModule,
   AuditLogStatus,
+  ConsumptionType,
+  DiscountApprovalStatus,
+  DiscountType,
   OrderSource,
   OrderStatus,
   OrderType as PrismaOrderType,
@@ -36,6 +39,7 @@ import { AnalyticsService } from '../analytics/analytics.service';
 import { DiscountsService } from '../discounts/discounts.service';
 import { MenuService } from '../menu/menu.service';
 import { PaymentsService } from '../payments/payments.service';
+import { ModifierIngredientsService } from '../modifier-ingredients/modifier-ingredients.service';
 import { PrintingService } from '../printing/printing.service';
 import { RestaurantsService } from '../restaurants/restaurants.service';
 import { TablesService } from '../tables/tables.service';
@@ -48,11 +52,54 @@ import { AuditTrailService } from '../logs/audit-trail.service';
 
 type OrderWithItems = Prisma.OrderGetPayload<{
   include: {
-    table: true;
+    table: { select: { id: true; number: true } };
     items: {
-      include: {
-        menuItem: true;
-        modifiers: true;
+      select: {
+        id: true;
+        quantity: true;
+        price: true;
+        notes: true;
+        menuItemId: true;
+        orderId: true;
+        modifiers: {
+          select: {
+            id: true;
+            modifierOptionId: true;
+            groupName: true;
+            groupNameEn: true;
+            groupNameFr: true;
+            groupNameAr: true;
+            optionName: true;
+            optionNameEn: true;
+            optionNameFr: true;
+            optionNameAr: true;
+            priceDelta: true;
+          };
+        };
+        menuItem: {
+          select: {
+            id: true;
+            name: true;
+            nameEn: true;
+            nameFr: true;
+            nameAr: true;
+            description: true;
+            descriptionEn: true;
+            descriptionFr: true;
+            descriptionAr: true;
+            price: true;
+            image: true;
+            available: true;
+            featured: true;
+            badge: true;
+            badgeEn: true;
+            badgeFr: true;
+            badgeAr: true;
+            sortOrder: true;
+            menuId: true;
+            restaurantId: true;
+          };
+        };
       };
     };
   };
@@ -153,6 +200,7 @@ export class OrdersService {
     private readonly printingService: PrintingService,
     private readonly waiterNotificationsService: WaiterNotificationsService,
     private readonly auditTrailService: AuditTrailService,
+    private readonly modifierIngredientsService: ModifierIngredientsService,
   ) {}
 
   async createOrder(
@@ -258,9 +306,10 @@ export class OrdersService {
         },
         include: this.orderInclude,
         orderBy: { createdAt: 'asc' },
+        take: 300,
       });
 
-      const responses = await Promise.all(orders.map((order) => this.toOrderResponse(order)));
+      const responses = await this.respondWithBulkFinancials(orders, scopedRestaurantId);
       return view === 'table' ? this.groupOrdersByTable(responses) : responses;
     }
 
@@ -282,9 +331,10 @@ export class OrdersService {
       where,
       include: this.orderInclude,
       orderBy: { createdAt: 'asc' },
+      take: 300,
     });
 
-    const responses = await Promise.all(orders.map((order) => this.toOrderResponse(order)));
+    const responses = await this.respondWithBulkFinancials(orders, restaurantId);
     return view === 'table' ? this.groupOrdersByTable(responses) : responses;
   }
 
@@ -660,9 +710,10 @@ export class OrdersService {
 
     const updatedOrder = await this.prisma.$transaction(async (tx) => {
       const next = await tx.order.update({
-        where: { id: orderId },
+        where: { id: orderId, version: order.version },
         data: {
           status,
+          version: { increment: 1 },
           ...statusTimestampUpdate,
           ...(previousStatus === OrderStatus.PENDING && status !== OrderStatus.PENDING
             ? { lockedAt: new Date() }
@@ -672,9 +723,22 @@ export class OrdersService {
       });
 
       return next;
+    }).catch((error) => {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new ConflictException(ORDER_VERSION_CONFLICT_MESSAGE);
+      }
+
+      throw error;
     });
 
     const response = await this.toOrderResponse(updatedOrder);
+    if (status === OrderStatus.PREPARING) {
+      await this.depleteInventoryForOrder(updatedOrder);
+      await this.depleteModifierIngredientsForOrder(updatedOrder);
+    }
     if (status === OrderStatus.PAID) {
       await this.auditTrailService.record({
         actor: {
@@ -838,7 +902,7 @@ export class OrdersService {
       entityId: updatedOrder.id,
       before: {
         status: previousOrder.status,
-        total: previousOrder.total,
+        total: Number(previousOrder.total),
         itemCount: previousOrder.items.reduce((sum, item) => sum + item.quantity, 0),
       },
       after: {
@@ -909,7 +973,7 @@ export class OrdersService {
           menuItemNameFr: item.menuItem?.nameFr ?? null,
           menuItemNameAr: item.menuItem?.nameAr ?? null,
           quantity: item.quantity,
-          lineTotal: item.price * item.quantity,
+          lineTotal: Number(item.price) * item.quantity,
           notes: item.notes,
           modifiers: item.modifiers.map((modifier) => ({
             groupName: modifier.groupName,
@@ -934,7 +998,7 @@ export class OrdersService {
           menuItemNameFr: item.menuItem?.nameFr ?? null,
           menuItemNameAr: item.menuItem?.nameAr ?? null,
           quantity: item.quantity,
-          lineTotal: item.price * item.quantity,
+          lineTotal: Number(item.price) * item.quantity,
           notes: item.notes,
           modifiers: (item.modifiers ?? []).map((modifier) => ({
             groupName: modifier.groupName,
@@ -959,9 +1023,9 @@ export class OrdersService {
         nextStatus: updatedOrder.status,
         previousVersion: previousOrder.version,
         nextVersion: updatedOrder.version,
-        previousTotal: previousOrder.total,
+        previousTotal: Number(previousOrder.total),
         nextTotal: updatedOrder.total,
-        totalDelta: updatedOrder.total - previousOrder.total,
+        totalDelta: updatedOrder.total - Number(previousOrder.total),
         previousItemCount: previousOrder.items.reduce((sum, item) => sum + item.quantity, 0),
         nextItemCount: updatedOrder.items.reduce((sum, item) => sum + item.quantity, 0),
         editedAt: new Date().toISOString(),
@@ -973,7 +1037,7 @@ export class OrdersService {
           menuItemNameFr: item.menuItem?.nameFr ?? null,
           menuItemNameAr: item.menuItem?.nameAr ?? null,
           quantity: item.quantity,
-          lineTotal: item.price * item.quantity,
+          lineTotal: Number(item.price) * item.quantity,
           notes: item.notes,
           modifiers: item.modifiers.map((modifier) => ({
             groupName: modifier.groupName,
@@ -993,7 +1057,7 @@ export class OrdersService {
           menuItemNameFr: item.menuItem?.nameFr ?? null,
           menuItemNameAr: item.menuItem?.nameAr ?? null,
           quantity: item.quantity,
-          lineTotal: item.price * item.quantity,
+          lineTotal: Number(item.price) * item.quantity,
           notes: item.notes,
           modifiers: (item.modifiers ?? []).map((modifier) => ({
             groupName: modifier.groupName,
@@ -1012,7 +1076,7 @@ export class OrdersService {
         ...(previousOrder.status !== OrderStatus.PENDING ? ['modified_after_preparation_started'] : []),
         ...(actor?.role === UserRole.CASHIER ? ['cashier_item_edit'] : []),
         ...(actor?.role === UserRole.WAITER ? ['waiter_item_edit'] : []),
-        ...(updatedOrder.total < previousOrder.total ? ['total_reduced'] : []),
+        ...(updatedOrder.total < Number(previousOrder.total) ? ['total_reduced'] : []),
         ...(updatedOrder.items.length < previousOrder.items.length ? ['items_removed'] : []),
       ],
       context: {
@@ -1032,7 +1096,7 @@ export class OrdersService {
       }
 
       const modifierTotal = this.calculateModifierTotal(item, menuItem);
-      return sum + (menuItem.price + modifierTotal) * item.quantity;
+      return sum + (Number(menuItem.price) + modifierTotal) * item.quantity;
     }, 0);
   }
 
@@ -1042,7 +1106,7 @@ export class OrdersService {
     return (menuItem.modifierGroups ?? []).reduce((sum, group) => {
       const optionTotal = group.options
         .filter((option) => selectedIds.has(option.id))
-        .reduce((groupSum, option) => groupSum + option.priceDelta, 0);
+        .reduce((groupSum, option) => groupSum + Number(option.priceDelta), 0);
       return sum + optionTotal;
     }, 0);
   }
@@ -1062,7 +1126,7 @@ export class OrdersService {
 
       const modifiers = this.resolveModifiersForItem(cartItem, menuItem);
       const unitPrice =
-        menuItem.price + modifiers.reduce((sum, modifier) => sum + modifier.priceDelta, 0);
+        Number(menuItem.price) + modifiers.reduce((sum, modifier) => sum + modifier.priceDelta, 0);
 
       return {
         cartItem,
@@ -1124,18 +1188,66 @@ export class OrdersService {
         optionNameEn: option.nameEn,
         optionNameFr: option.nameFr,
         optionNameAr: option.nameAr,
-        priceDelta: option.priceDelta,
+        priceDelta: Number(option.priceDelta),
       })),
     );
   }
 
   private get orderInclude() {
     return {
-      table: true,
+      table: {
+        select: {
+          id: true,
+          number: true,
+        },
+      },
       items: {
-        include: {
-          menuItem: true,
-          modifiers: true,
+        select: {
+          id: true,
+          quantity: true,
+          price: true,
+          notes: true,
+          menuItemId: true,
+          orderId: true,
+          modifiers: {
+            select: {
+              id: true,
+              modifierOptionId: true,
+              groupName: true,
+              groupNameEn: true,
+              groupNameFr: true,
+              groupNameAr: true,
+              optionName: true,
+              optionNameEn: true,
+              optionNameFr: true,
+              optionNameAr: true,
+              priceDelta: true,
+            },
+          },
+          menuItem: {
+            select: {
+              id: true,
+              name: true,
+              nameEn: true,
+              nameFr: true,
+              nameAr: true,
+              description: true,
+              descriptionEn: true,
+              descriptionFr: true,
+              descriptionAr: true,
+              price: true,
+              image: true,
+              available: true,
+              featured: true,
+              badge: true,
+              badgeEn: true,
+              badgeFr: true,
+              badgeAr: true,
+              sortOrder: true,
+              menuId: true,
+              restaurantId: true,
+            },
+          },
         },
       },
     } satisfies Prisma.OrderInclude;
@@ -1359,9 +1471,128 @@ export class OrdersService {
     return (latestTableOrder as any).parentOrderId ?? latestTableOrder.id;
   }
 
-  private async toOrderResponse(order: OrderWithItems): Promise<OrderResponse> {
+  private async respondWithBulkFinancials(
+    orders: OrderWithItems[],
+    restaurantId: string,
+  ): Promise<OrderResponse[]> {
+    if (orders.length === 0) return [];
+
+    const orderIds = orders.map((o) => o.id);
+    let taxRate = 0;
+
+    try {
+      const settings = await this.prisma.restaurantSettings.findUnique({
+        where: { restaurantId },
+        select: { salesTax: true },
+      });
+      taxRate = Number(settings?.salesTax ?? 0);
+    } catch (error) {
+      if (!this.isLegacyFinancialSchemaIssue(error)) throw error;
+      this.logger.warn('Falling back to zero tax rate for bulk financial summaries');
+    }
+
+    const [allDiscounts, allPayments] = await Promise.all([
+      this.prisma.discount.findMany({
+        where: { orderId: { in: orderIds }, order: { restaurantId } },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.payment.findMany({
+        where: { orderId: { in: orderIds }, order: { restaurantId } },
+      }),
+    ]);
+
+    const discountsByOrder = new Map<string, typeof allDiscounts>();
+    for (const d of allDiscounts) {
+      if (!discountsByOrder.has(d.orderId)) discountsByOrder.set(d.orderId, []);
+      discountsByOrder.get(d.orderId)!.push(d);
+    }
+
+    const paymentsByOrder = new Map<string, typeof allPayments>();
+    for (const p of allPayments) {
+      if (!paymentsByOrder.has(p.orderId)) paymentsByOrder.set(p.orderId, []);
+      paymentsByOrder.get(p.orderId)!.push(p);
+    }
+
+    return Promise.all(
+      orders.map((order) => {
+        const orderDiscounts = discountsByOrder.get(order.id) ?? [];
+        const orderPayments = paymentsByOrder.get(order.id) ?? [];
+        const summary = this.computeFinancialSummary(
+          order,
+          orderDiscounts,
+          orderPayments,
+          taxRate,
+        );
+        return this.toOrderResponse(order, summary);
+      }),
+    );
+  }
+
+  private computeFinancialSummary(
+    order: OrderWithItems,
+    discounts: Array<{ value: Prisma.Decimal | number; type: DiscountType; approvalStatus: DiscountApprovalStatus }>,
+    payments: Array<{ amount: Prisma.Decimal | number; refundedAmount: Prisma.Decimal | number; status: PaymentStatus }>,
+    taxRate: number,
+  ): OrderFinancialSummaryDTO {
+    const subtotal = order.items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
+
+    let runningSubtotal = subtotal;
+    let discountTotal = 0;
+
+    for (const discount of discounts) {
+      if (discount.approvalStatus !== DiscountApprovalStatus.APPROVED) continue;
+      const discountValue = Number(discount.value);
+      const appliedAmount =
+        discount.type === DiscountType.PERCENTAGE
+          ? (runningSubtotal * discountValue) / 100
+          : discountValue;
+      const boundedAmount = Math.min(Math.max(appliedAmount, 0), runningSubtotal);
+      discountTotal += boundedAmount;
+      runningSubtotal = Math.max(runningSubtotal - boundedAmount, 0);
+    }
+
+    const discountedSubtotal = runningSubtotal;
+    const taxTotal = discountedSubtotal * (taxRate / 100);
+    const grandTotal = discountedSubtotal + taxTotal;
+
+    const paidAmount = payments
+      .filter((payment) => payment.status !== PaymentStatus.CANCELLED)
+      .reduce((sum, payment) => sum + Math.max(Number(payment.amount) - Number(payment.refundedAmount), 0), 0);
+
+    const refundedAmount = payments.reduce((sum, payment) => sum + Number(payment.refundedAmount), 0);
+
+    const remainingAmount = Math.max(grandTotal - paidAmount, 0);
+
+    let financialStatus: OrderFinancialSummaryDTO['financialStatus'] = 'UNPAID';
+    if (order.status === OrderStatus.CANCELLED) {
+      financialStatus = 'CANCELLED';
+    } else if (grandTotal === 0 && discountTotal > 0) {
+      financialStatus = 'PAID';
+    } else if (paidAmount >= grandTotal && grandTotal > 0) {
+      financialStatus = refundedAmount >= paidAmount && paidAmount > 0 ? 'REFUNDED' : 'PAID';
+    } else if (paidAmount > 0) {
+      financialStatus = 'PARTIALLY_PAID';
+    } else if (refundedAmount > 0 && paidAmount <= 0) {
+      financialStatus = 'REFUNDED';
+    }
+
+    return {
+      subtotal,
+      discountTotal,
+      taxTotal,
+      grandTotal,
+      paidAmount,
+      remainingAmount,
+      financialStatus,
+    };
+  }
+
+  private async toOrderResponse(
+    order: OrderWithItems,
+    precomputedFinancialSummary?: OrderFinancialSummaryDTO,
+  ): Promise<OrderResponse> {
     const isWalkInOrder = order.orderType === PrismaOrderType.TAKEAWAY;
-    const financialSummary = await this.buildFinancialSummary(order);
+    const financialSummary = precomputedFinancialSummary ?? (await this.buildFinancialSummary(order));
     const displayOrderId = await this.buildDisplayOrderId(order);
 
     return {
@@ -1405,7 +1636,7 @@ export class OrdersService {
       items: order.items.map((item) => ({
         id: item.id,
         quantity: item.quantity,
-        price: item.price,
+        price: Number(item.price),
         notes: item.notes,
         orderId: item.orderId,
         menuItemId: item.menuItemId,
@@ -1420,7 +1651,7 @@ export class OrdersService {
           optionNameEn: modifier.optionNameEn,
           optionNameFr: modifier.optionNameFr,
           optionNameAr: modifier.optionNameAr,
-          priceDelta: modifier.priceDelta,
+          priceDelta: Number(modifier.priceDelta),
         })),
         menuItem: {
           id: item.menuItem.id,
@@ -1432,7 +1663,7 @@ export class OrdersService {
           descriptionEn: item.menuItem.descriptionEn,
           descriptionFr: item.menuItem.descriptionFr,
           descriptionAr: item.menuItem.descriptionAr,
-          price: item.menuItem.price,
+          price: Number(item.menuItem.price),
           image: item.menuItem.image,
           available: item.menuItem.available,
           featured: item.menuItem.featured,
@@ -1464,6 +1695,7 @@ export class OrdersService {
         select: {
           id: true,
         },
+        take: 100,
       }),
       this.prisma.order.findMany({
         where: {
@@ -1490,7 +1722,7 @@ export class OrdersService {
   }
 
   private async buildFinancialSummary(order: OrderWithItems): Promise<OrderFinancialSummaryDTO> {
-    const subtotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const subtotal = order.items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
 
     try {
       const settings = await this.prisma.restaurantSettings.findUnique({
@@ -1502,7 +1734,7 @@ export class OrdersService {
         order.restaurantId,
         subtotal,
       );
-      const taxRate = settings?.salesTax ?? 0;
+      const taxRate = Number(settings?.salesTax ?? 0);
       const taxTotal = discountedSubtotal * (taxRate / 100);
       const grandTotal = discountedSubtotal + taxTotal;
       const { paidAmount, refundedAmount } = await this.paymentsService.summarizeByOrder(
@@ -1568,5 +1800,185 @@ export class OrdersService {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       (error.code === 'P2021' || error.code === 'P2022')
     );
+  }
+
+  private async depleteInventoryForOrder(order: OrderWithItems) {
+    const alreadyDepleted = await this.prisma.inventoryConsumptionLog.findFirst({
+      where: { orderId: order.id },
+      select: { id: true },
+    });
+    if (alreadyDepleted) {
+      this.logger.warn(`Stock already deducted for order ${order.id}, skipping depleteInventoryForOrder`);
+      return;
+    }
+
+    const menuItemIds = [...new Set(order.items.map((item) => item.menuItemId))];
+
+    const ingredients = await this.prisma.menuItemIngredient.findMany({
+      where: { menuItemId: { in: menuItemIds } },
+    });
+
+    if (ingredients.length === 0) {
+      return;
+    }
+
+    const consumptionData: Array<{
+      inventoryItemId: string;
+      totalQuantity: number;
+    }> = [];
+
+    for (const ingredient of ingredients) {
+      const totalOrderQty = order.items
+        .filter((item) => item.menuItemId === ingredient.menuItemId)
+        .reduce((sum, item) => sum + item.quantity, 0);
+
+      const totalConsumed = ingredient.quantityRequired * totalOrderQty;
+
+      if (totalConsumed <= 0) {
+        continue;
+      }
+
+      consumptionData.push({
+        inventoryItemId: ingredient.inventoryItemId,
+        totalQuantity: totalConsumed,
+      });
+    }
+
+    if (consumptionData.length === 0) {
+      return;
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await Promise.all(
+        consumptionData.map(async (consumption) => {
+          const updated = await tx.inventoryItem.update({
+            where: { id: consumption.inventoryItemId },
+            data: { stockLevel: { decrement: consumption.totalQuantity } },
+          });
+
+          const newStatus =
+            updated.stockLevel <= updated.minAlertLevel * 0.5
+              ? ('CRITICAL' as const)
+              : updated.stockLevel <= updated.minAlertLevel
+                ? ('LOW_STOCK' as const)
+                : ('HEALTHY' as const);
+
+          await tx.inventoryItem.update({
+            where: { id: consumption.inventoryItemId },
+            data: { status: newStatus },
+          });
+        }),
+      );
+
+      await tx.inventoryConsumptionLog.createMany({
+        data: consumptionData.map((consumption) => ({
+          restaurantId: order.restaurantId,
+          inventoryItemId: consumption.inventoryItemId,
+          orderId: order.id,
+          quantityUsed: consumption.totalQuantity,
+          type: ConsumptionType.AUTO_DEDUCTION,
+        })),
+      });
+    });
+  }
+
+  private async depleteModifierIngredientsForOrder(order: OrderWithItems) {
+    const alreadyDepleted = await this.prisma.inventoryConsumptionLog.findFirst({
+      where: { orderId: order.id },
+      select: { id: true },
+    });
+    if (alreadyDepleted) {
+      this.logger.warn(`Stock already deducted for order ${order.id}, skipping depleteModifierIngredientsForOrder`);
+      return;
+    }
+
+    const modifierOptionIds: string[] = [];
+
+    for (const item of order.items) {
+      for (const modifier of item.modifiers) {
+        if (modifier.modifierOptionId) {
+          modifierOptionIds.push(modifier.modifierOptionId);
+        }
+      }
+    }
+
+    if (modifierOptionIds.length === 0) {
+      return;
+    }
+
+    const ingredients = await this.prisma.modifierIngredient.findMany({
+      where: { modifierOptionId: { in: modifierOptionIds } },
+    });
+
+    if (ingredients.length === 0) {
+      return;
+    }
+
+    const consumptionData: Array<{
+      inventoryItemId: string;
+      totalQuantity: number;
+    }> = [];
+
+    for (const ingredient of ingredients) {
+      let totalOrderQty = 0;
+
+      for (const item of order.items) {
+        const matchCount = item.modifiers.filter(
+          (m) => m.modifierOptionId === ingredient.modifierOptionId,
+        ).length;
+
+        if (matchCount > 0) {
+          totalOrderQty += item.quantity * matchCount;
+        }
+      }
+
+      const totalConsumed = ingredient.quantityRequired * totalOrderQty;
+
+      if (totalConsumed <= 0) {
+        continue;
+      }
+
+      consumptionData.push({
+        inventoryItemId: ingredient.inventoryItemId,
+        totalQuantity: totalConsumed,
+      });
+    }
+
+    if (consumptionData.length === 0) {
+      return;
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await Promise.all(
+        consumptionData.map(async (consumption) => {
+          const updated = await tx.inventoryItem.update({
+            where: { id: consumption.inventoryItemId },
+            data: { stockLevel: { decrement: consumption.totalQuantity } },
+          });
+
+          const newStatus =
+            updated.stockLevel <= updated.minAlertLevel * 0.5
+              ? ('CRITICAL' as const)
+              : updated.stockLevel <= updated.minAlertLevel
+                ? ('LOW_STOCK' as const)
+                : ('HEALTHY' as const);
+
+          await tx.inventoryItem.update({
+            where: { id: consumption.inventoryItemId },
+            data: { status: newStatus },
+          });
+        }),
+      );
+
+      await tx.inventoryConsumptionLog.createMany({
+        data: consumptionData.map((consumption) => ({
+          restaurantId: order.restaurantId,
+          inventoryItemId: consumption.inventoryItemId,
+          orderId: order.id,
+          quantityUsed: consumption.totalQuantity,
+          type: ConsumptionType.AUTO_DEDUCTION,
+        })),
+      });
+    });
   }
 }

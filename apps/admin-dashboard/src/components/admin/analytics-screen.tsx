@@ -1,112 +1,71 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { AlertCircle, Download } from 'lucide-react';
-import type {
-  BusyHourDTO,
-  OrdersSummaryDTO,
-  RevenueChartResponse,
-  TopDishDTO,
-} from '@repo/shared-types';
-import { getApiErrorMessage } from '@/lib/api-error';
 import { useI18n } from '@/hooks/use-i18n';
-import { useAppStore } from '@/store/app.store';
 import {
-  getBusyHours,
-  getOrdersSummary,
-  getRevenueChart,
-  getTopDishes,
-} from '@/services/analytics.service';
+  useRevenueChart,
+  useTopDishes,
+  useBusyHours,
+  useOrdersSummary,
+} from '@/hooks/use-admin-queries';
 
 type TimeRange = 'daily' | 'weekly' | 'monthly';
 
 export function AnalyticsScreen() {
   const { t, formatCurrency, formatNumber, statusLabel } = useI18n();
-  const restaurantId = useAppStore((state) => state.restaurantId);
   const [timeRange, setTimeRange] = useState<TimeRange>('daily');
-  const [revenue, setRevenue] = useState<RevenueChartResponse | null>(null);
-  const [topDishes, setTopDishes] = useState<TopDishDTO[]>([]);
-  const [busyHours, setBusyHours] = useState<BusyHourDTO[]>([]);
-  const [summary, setSummary] = useState<OrdersSummaryDTO | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
+  const {
+    data: revenue,
+    isLoading: revenueLoading,
+    error: revenueError,
+  } = useRevenueChart(timeRange);
+  const { data: topDishes = [], isLoading: dishesLoading } = useTopDishes();
+  const { data: busyHours = [], isLoading: hoursLoading } = useBusyHours();
+  const { data: summary, isLoading: summaryLoading } = useOrdersSummary();
 
-    async function load() {
-      if (!restaurantId) {
-        setRevenue(null);
-        setTopDishes([]);
-        setBusyHours([]);
-        setSummary(null);
-        setLoading(false);
-        return;
-      }
+  const loading = revenueLoading || dishesLoading || hoursLoading || summaryLoading;
+  const error = revenueError ? (revenueError as Error).message : null;
 
-      try {
-        setLoading(true);
-        setError(null);
-        const [revenueData, dishesData, hoursData, summaryData] = await Promise.all([
-          getRevenueChart(timeRange, restaurantId),
-          getTopDishes(restaurantId),
-          getBusyHours(restaurantId),
-          getOrdersSummary(restaurantId),
-        ]);
+  const chartData = useMemo(() => {
+    const values = revenue?.datasets[0]?.data ?? [];
+    const max = Math.max(...values, 1);
+    const total = values.reduce((sum, v) => sum + v, 0);
+    const avg = values.length > 0 ? total / values.length : 0;
+    return { values, max, total, avg };
+  }, [revenue]);
 
-        if (!active) {
-          return;
-        }
+  const orderStats = useMemo(() => {
+    const total = summary?.total ?? 0;
+    const completed = (summary?.delivered ?? 0) + (summary?.paid ?? 0);
+    const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { total, completed, rate };
+  }, [summary?.total, summary?.delivered, summary?.paid]);
 
-        setRevenue(revenueData);
-        setTopDishes(dishesData);
-        setBusyHours(hoursData);
-        setSummary(summaryData);
-      } catch (nextError) {
-        if (active) {
-          setError(getApiErrorMessage(nextError, t('analytics.title')));
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void load();
-
-    return () => {
-      active = false;
-    };
-  }, [restaurantId, timeRange]);
-
-  const chartValues = revenue?.datasets[0]?.data ?? [];
-  const chartMax = Math.max(...chartValues, 1);
-  const totalRevenue = chartValues.reduce((sum, value) => sum + value, 0);
-  const avgRevenue = chartValues.length > 0 ? totalRevenue / chartValues.length : 0;
-  const totalOrders = summary?.total ?? 0;
-  const completedOrders = (summary?.delivered ?? 0) + (summary?.paid ?? 0);
-  const completionRate = totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0;
-  const busyMax = Math.max(...busyHours.map((hour) => hour.orders), 1);
+  const busyMax = useMemo(
+    () => Math.max(...busyHours.map((h) => h.orders), 1),
+    [busyHours],
+  );
 
   const headlineStats = useMemo(
     () => [
       {
         label: t('analytics.revenueTotal'),
-        value: formatCurrency(totalRevenue),
+        value: formatCurrency(chartData.total),
         note: loading
           ? t('common.loading')
-          : `${t('analytics.averageRevenue')} ${formatCurrency(avgRevenue)}`,
+          : `${t('analytics.averageRevenue')} ${formatCurrency(chartData.avg)}`,
       },
       {
         label: t('dashboard.totalOrders'),
-        value: formatNumber(totalOrders),
-        note: `${completedOrders} ${t('dashboard.completedCount')}`,
+        value: formatNumber(orderStats.total),
+        note: `${orderStats.completed} ${t('dashboard.completedCount')}`,
       },
       {
         label: t('analytics.cancelledOrders'),
         value: formatNumber(summary?.cancelled ?? 0),
-        note: `${completionRate}% ${t('analytics.completionRate')}`,
+        note: `${orderStats.rate}% ${t('analytics.completionRate')}`,
       },
       {
         label: t('analytics.topDishesCount'),
@@ -115,16 +74,16 @@ export function AnalyticsScreen() {
       },
     ],
     [
-      avgRevenue,
-      completedOrders,
-      completionRate,
+      chartData.avg,
+      chartData.total,
       formatCurrency,
       formatNumber,
       loading,
+      orderStats.completed,
+      orderStats.rate,
+      orderStats.total,
       summary?.cancelled,
       topDishes.length,
-      totalOrders,
-      totalRevenue,
     ],
   );
 
@@ -193,7 +152,7 @@ export function AnalyticsScreen() {
           <div className="h-[280px] bg-slate-50 border border-slate-100 rounded-lg flex flex-col justify-end p-4">
             <div className="flex justify-between items-end h-full gap-4 px-2">
               {(revenue?.labels ?? []).map((label, index) => {
-                const value = chartValues[index] ?? 0;
+                const value = chartData.values[index] ?? 0;
 
                 return (
                   <div
@@ -202,7 +161,7 @@ export function AnalyticsScreen() {
                   >
                     <div
                       className="w-full bg-orange-500 rounded-t-md hover:bg-orange-600 transition-colors"
-                      style={{ height: `${Math.max((value / chartMax) * 100, 6)}%` }}
+                      style={{ height: `${Math.max((value / chartData.max) * 100, 6)}%` }}
                       title={`${label}: ${formatCurrency(value)}`}
                     />
                     <span className="text-[9px] font-bold text-slate-400 font-mono">{label}</span>

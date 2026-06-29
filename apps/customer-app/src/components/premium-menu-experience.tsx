@@ -1,6 +1,6 @@
 'use client';
 
-import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -9,17 +9,13 @@ import {
   ChefHat,
   ChevronDown,
   Clock3,
-  Minus,
-  Plus,
   ReceiptText,
   ShoppingBag,
   Sparkles,
   Star,
   Utensils,
-  Wifi,
-  X,
 } from 'lucide-react';
-import type { ModifierGroupDTO, ModifierOptionDTO, OrderResponse } from '@repo/shared-types';
+import type { OrderResponse } from '@repo/shared-types';
 import { getApiErrorMessage, getApiErrorStatus } from '@/lib/api-error';
 import { getOrCreateGuestSessionId } from '@/lib/guest-session';
 import { localizeDescription, localizeName, t } from '@/lib/i18n';
@@ -35,6 +31,21 @@ import { useLanguageStore } from '@/store/language.store';
 import type { Language, Menu, MenuItem } from '@/types/menu';
 import type { CreateOrderInput, OrderContextDTO } from '@/types/order';
 import { TableSessionSync } from './table-session-sync';
+import {
+  resolveTheme,
+  defaultSelectionForItem,
+  validateCustomization,
+  CustomizationModal,
+  FoodCard,
+  ModalShell,
+  WaiterCallButton,
+  WaiterComingBanner,
+} from './menu-sections';
+import { CartDrawer } from './cart-sections';
+import type {
+  ThemeConfig,
+  CustomizerState,
+} from './menu-sections';
 
 type PremiumMenuExperienceProps = {
   initialContext: OrderContextDTO | null;
@@ -43,149 +54,6 @@ type PremiumMenuExperienceProps = {
   loading: boolean;
   failed: boolean;
 };
-
-type ThemeConfig = {
-  page: string;
-  ink: string;
-  panel: string;
-  panelSoft: string;
-  border: string;
-  muted: string;
-  accent: string;
-  accentText: string;
-  chip: string;
-  shadow: string;
-  heroFallback: string;
-};
-
-type ThemeKey = 'american' | 'french' | 'local' | 'default';
-
-type CustomizerState = {
-  item: MenuItem;
-  quantity: number;
-  notes: string;
-  selectedOptionIds: string[];
-};
-
-const themeMap: Record<ThemeKey, ThemeConfig> = {
-  american: {
-    page: 'bg-[radial-gradient(circle_at_top,_#6f1d1b,_#1b0f12_55%)]',
-    ink: 'text-white',
-    panel: 'bg-white/10 backdrop-blur-xl',
-    panelSoft: 'bg-black/30 backdrop-blur-xl',
-    border: 'border-white/15',
-    muted: 'text-white/75',
-    accent: 'bg-[#ffcc48]',
-    accentText: 'text-[#2a1606]',
-    chip: 'bg-[#ffcc48]/20 text-[#ffe8a3]',
-    shadow: 'shadow-[0_24px_80px_rgba(0,0,0,0.28)]',
-    heroFallback:
-      'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=1400&q=85',
-  },
-  french: {
-    page: 'bg-[radial-gradient(circle_at_top,_#f7e8c7,_#e3c389_38%,_#5a3d24_100%)]',
-    ink: 'text-[#2b2118]',
-    panel: 'bg-[#fff8ee]/88 backdrop-blur-xl',
-    panelSoft: 'bg-[#fff6e8]/76 backdrop-blur-xl',
-    border: 'border-[#9b7c4f]/24',
-    muted: 'text-[#705c47]',
-    accent: 'bg-[#af7b2f]',
-    accentText: 'text-[#fff9ef]',
-    chip: 'bg-[#f0dfbf] text-[#6b4d22]',
-    shadow: 'shadow-[0_24px_70px_rgba(74,47,15,0.18)]',
-    heroFallback:
-      'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1400&q=85',
-  },
-  local: {
-    page: 'bg-[radial-gradient(circle_at_top,_#c78644,_#5a3220_42%,_#183024_100%)]',
-    ink: 'text-[#fff7ea]',
-    panel: 'bg-[#173528]/82 backdrop-blur-xl',
-    panelSoft: 'bg-[#0f241c]/72 backdrop-blur-xl',
-    border: 'border-[#e4b16d]/24',
-    muted: 'text-[#ffe6be]/76',
-    accent: 'bg-[#df9d56]',
-    accentText: 'text-[#213126]',
-    chip: 'bg-[#2f5e49] text-[#ffebc8]',
-    shadow: 'shadow-[0_24px_80px_rgba(12,32,24,0.34)]',
-    heroFallback:
-      'https://images.unsplash.com/photo-1541518763669-27fef04b14ea?auto=format&fit=crop&w=1400&q=85',
-  },
-  default: {
-    page: 'bg-[radial-gradient(circle_at_top,_#f2e6d6,_#d5b690_45%,_#514030_100%)]',
-    ink: 'text-[#2d241d]',
-    panel: 'bg-white/84 backdrop-blur-xl',
-    panelSoft: 'bg-white/72 backdrop-blur-xl',
-    border: 'border-[#b69976]/22',
-    muted: 'text-[#6a5a49]',
-    accent: 'bg-[#8d6034]',
-    accentText: 'text-[#fff8ef]',
-    chip: 'bg-[#efe0cb] text-[#63472d]',
-    shadow: 'shadow-[0_24px_70px_rgba(60,41,22,0.16)]',
-    heroFallback:
-      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1400&q=85',
-  },
-};
-
-function resolveTheme(menu: Menu | null): ThemeConfig {
-  const key = `${menu?.themeKey ?? ''} ${menu?.name ?? ''} ${menu?.nameEn ?? ''}`.toLowerCase();
-
-  if (key.includes('amer') || key.includes('burger')) {
-    return themeMap.american;
-  }
-  if (key.includes('fr') || key.includes('bistro')) {
-    return themeMap.french;
-  }
-  if (key.includes('local') || key.includes('trad') || key.includes('moroccan')) {
-    return themeMap.local;
-  }
-
-  return themeMap.default;
-}
-
-function defaultSelectionForItem(item: MenuItem) {
-  return (item.modifierGroups ?? []).flatMap((group) =>
-    group.options.filter((option) => option.isDefault).map((option) => option.id),
-  );
-}
-
-function selectedOptionsByGroup(group: ModifierGroupDTO, selectedIds: string[]) {
-  const selected = new Set(selectedIds);
-  return group.options.filter((option) => selected.has(option.id));
-}
-
-function findSelectedOptions(item: MenuItem, selectedOptionIds: string[]) {
-  const selected = new Set(selectedOptionIds);
-  return (item.modifierGroups ?? []).flatMap((group) =>
-    group.options.filter((option) => selected.has(option.id)),
-  );
-}
-
-function validateCustomization(item: MenuItem, selectedOptionIds: string[], language: Language) {
-  const copy = t(language);
-
-  for (const group of item.modifierGroups ?? []) {
-    const selected = selectedOptionsByGroup(group, selectedOptionIds);
-
-    if (group.required && selected.length === 0) {
-      return `${copy.chooseAtLeast} 1 - ${localizeName(group, language)}`;
-    }
-
-    if (selected.length < group.minSelections) {
-      return `${copy.chooseAtLeast} ${group.minSelections} - ${localizeName(group, language)}`;
-    }
-
-    if (selected.length > group.maxSelections) {
-      return `${copy.chooseUpTo} ${group.maxSelections} - ${localizeName(group, language)}`;
-    }
-  }
-
-  return null;
-}
-
-function itemUnitPrice(item: MenuItem, selectedOptionIds: string[]) {
-  const options = findSelectedOptions(item, selectedOptionIds);
-  return item.price + options.reduce((sum, option) => sum + option.priceDelta, 0);
-}
 
 export function PremiumMenuExperience({
   initialContext,
@@ -543,11 +411,7 @@ export function PremiumMenuExperience({
         ) : null}
 
         {waiterComingMessage ? (
-          <div
-            className={`rounded-full border px-5 py-3 text-sm font-bold ${activeTheme.panel} ${activeTheme.border} ${activeTheme.shadow} bg-amber-500/10`}
-          >
-            {waiterComingMessage}
-          </div>
+          <WaiterComingBanner message={waiterComingMessage} theme={activeTheme} />
         ) : null}
 
         {recentOrders.length ? (
@@ -561,14 +425,12 @@ export function PremiumMenuExperience({
                 <p className={`mt-1 text-sm ${activeTheme.muted}`}>{copy.myOrdersHint}</p>
               </div>
               {context ? (
-                <button
-                  type="button"
+                <WaiterCallButton
                   onClick={() => void handleCallWaiter()}
-                  disabled={callingWaiter}
-                  className={`rounded-full px-4 py-2 text-sm font-bold ${activeTheme.accent} ${activeTheme.accentText} disabled:opacity-60`}
-                >
-                  {callingWaiter ? copy.connecting : copy.callWaiter}
-                </button>
+                  callingWaiter={callingWaiter}
+                  theme={activeTheme}
+                  language={language}
+                />
               ) : null}
             </div>
 
@@ -620,14 +482,12 @@ export function PremiumMenuExperience({
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                type="button"
+              <WaiterCallButton
                 onClick={() => void handleCallWaiter()}
-                disabled={callingWaiter}
-                className={`rounded-full px-4 py-2 text-sm font-bold ${activeTheme.accent} ${activeTheme.accentText} disabled:opacity-60`}
-              >
-                {callingWaiter ? copy.connecting : copy.callWaiter}
-              </button>
+                callingWaiter={callingWaiter}
+                theme={activeTheme}
+                language={language}
+              />
               <ChevronDown size={20} />
             </div>
           </div>
@@ -764,75 +624,6 @@ function SectionHeader({
   );
 }
 
-function FoodCard({
-  item,
-  language,
-  theme,
-  onAdd,
-}: {
-  item: MenuItem;
-  language: Language;
-  theme: ThemeConfig;
-  onAdd: () => void;
-}) {
-  const badge = localizeName(
-    {
-      name: item.badge,
-      nameEn: item.badgeEn,
-      nameFr: item.badgeFr,
-      nameAr: item.badgeAr,
-    },
-    language,
-  );
-
-  return (
-    <article className={`overflow-hidden rounded-[28px] border ${theme.panel} ${theme.border} ${theme.shadow}`}>
-      <div className="relative aspect-[4/3] overflow-hidden">
-        {item.image ? (
-          <img
-            src={item.image}
-            alt={localizeName(item, language)}
-            className="h-full w-full object-cover transition duration-500 hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center px-6 text-center text-2xl font-semibold">
-            {localizeName(item, language)}
-          </div>
-        )}
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.58))]" />
-        <div className="absolute bottom-3 left-3 flex gap-2">
-          {badge ? <span className={`rounded-full px-3 py-1 text-xs font-semibold ${theme.chip}`}>{badge}</span> : null}
-          {item.modifierGroups?.length ? (
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${theme.chip}`}>
-              {t(language).customize}
-            </span>
-          ) : null}
-        </div>
-      </div>
-      <div className="space-y-4 p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="text-xl font-semibold">{localizeName(item, language)}</h3>
-            <p className={`mt-2 text-sm leading-6 ${theme.muted}`}>
-              {localizeDescription(item, language)}
-            </p>
-          </div>
-          <p className="shrink-0 font-bold">{formatMoney(item.price)}</p>
-        </div>
-
-        <button
-          type="button"
-          onClick={onAdd}
-          disabled={!item.available}
-          className={`w-full rounded-full px-4 py-3 text-sm font-bold ${theme.accent} ${theme.accentText} disabled:opacity-60`}
-        >
-          {item.available ? t(language).add : t(language).unavailable}
-        </button>
-      </div>
-    </article>
-  );
-}
-
 function HorizontalSection({
   title,
   items,
@@ -876,321 +667,6 @@ function HorizontalSection({
         ))}
       </div>
     </section>
-  );
-}
-
-function QuantityControl({
-  value,
-  onChange,
-  theme,
-}: {
-  value: number;
-  onChange: (delta: number) => void;
-  theme: ThemeConfig;
-}) {
-  return (
-    <div className={`flex items-center rounded-full border p-1 ${theme.panelSoft} ${theme.border}`}>
-      <button
-        type="button"
-        onClick={() => onChange(-1)}
-        className="grid h-9 w-9 place-items-center rounded-full"
-      >
-        <Minus size={15} />
-      </button>
-      <span className="w-8 text-center text-sm font-bold">{value}</span>
-      <button
-        type="button"
-        onClick={() => onChange(1)}
-        className="grid h-9 w-9 place-items-center rounded-full"
-      >
-        <Plus size={15} />
-      </button>
-    </div>
-  );
-}
-
-function CustomizationModal({
-  state,
-  setState,
-  error,
-  language,
-  theme,
-  onClose,
-  onAdd,
-}: {
-  state: CustomizerState;
-  setState: Dispatch<SetStateAction<CustomizerState | null>>;
-  error: string | null;
-  language: Language;
-  theme: ThemeConfig;
-  onClose: () => void;
-  onAdd: () => void;
-}) {
-  const copy = t(language);
-  const selectedOptions = findSelectedOptions(state.item, state.selectedOptionIds);
-  const total = itemUnitPrice(state.item, state.selectedOptionIds) * state.quantity;
-
-  return (
-    <ModalShell theme={theme} onClose={onClose}>
-      <div className="space-y-5">
-        <div className="flex gap-4">
-          {state.item.image ? (
-            <img
-              src={state.item.image}
-              alt={localizeName(state.item, language)}
-              className="h-24 w-24 rounded-[20px] object-cover"
-            />
-          ) : (
-            <div className="h-24 w-24 rounded-[20px] bg-white/20" />
-          )}
-          <div className="min-w-0">
-            <p className={`text-xs font-bold uppercase tracking-[0.18em] ${theme.muted}`}>
-              {copy.customize}
-            </p>
-            <h3 className="mt-1 text-3xl font-semibold">{localizeName(state.item, language)}</h3>
-            <p className="mt-2 font-bold">{formatMoney(total)}</p>
-          </div>
-        </div>
-
-        {(state.item.modifierGroups ?? []).map((group) => {
-          const selected = selectedOptionsByGroup(group, state.selectedOptionIds);
-          return (
-            <div key={group.id} className={`rounded-[24px] border p-4 ${theme.panelSoft} ${theme.border}`}>
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <h4 className="font-semibold">{localizeName(group, language)}</h4>
-                  <p className={`text-xs ${theme.muted}`}>
-                    {group.required ? copy.required : copy.optional} - {copy.chooseUpTo} {group.maxSelections}
-                  </p>
-                </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${theme.chip}`}>
-                  {selected.length}/{group.maxSelections}
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {group.options.map((option) => {
-                  const active = state.selectedOptionIds.includes(option.id);
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => toggleGroupOption(group, option, setState)}
-                      className={`flex w-full items-center justify-between rounded-[20px] border px-4 py-3 text-left ${
-                        active
-                          ? `${theme.accent} ${theme.accentText}`
-                          : `${theme.panel} ${theme.border}`
-                      }`}
-                    >
-                      <span>
-                        <span className="block font-semibold">{localizeName(option, language)}</span>
-                        {localizeDescription(option, language) ? (
-                          <span className="block text-xs opacity-80">
-                            {localizeDescription(option, language)}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="font-semibold">
-                        {option.priceDelta > 0
-                          ? `+${formatMoney(option.priceDelta)}`
-                          : copy.modifierIncluded}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-
-        {selectedOptions.length ? (
-          <div className={`rounded-[24px] border p-4 ${theme.panelSoft} ${theme.border}`}>
-            <p className="font-semibold">{copy.selectOptions}</p>
-            <p className={`mt-2 text-sm ${theme.muted}`}>
-              {selectedOptions.map((option) => localizeName(option, language)).join(' | ')}
-            </p>
-          </div>
-        ) : null}
-
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold">{copy.total}</p>
-            <p className={`text-xs ${theme.muted}`}>{copy.kitchenNote}</p>
-          </div>
-          <QuantityControl
-            value={state.quantity}
-            onChange={(delta) =>
-              setState((current) =>
-                current
-                  ? {
-                      ...current,
-                      quantity: Math.max(1, current.quantity + delta),
-                    }
-                  : current,
-              )
-            }
-            theme={theme}
-          />
-        </div>
-
-        <textarea
-          value={state.notes}
-          onChange={(event) =>
-            setState((current) => (current ? { ...current, notes: event.target.value } : current))
-          }
-          placeholder={copy.notePlaceholder}
-          className="min-h-28 w-full rounded-[24px] border border-white/20 bg-white/80 p-4 text-sm text-slate-900 outline-none"
-        />
-
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-        <button
-          type="button"
-          onClick={onAdd}
-          className={`w-full rounded-full px-5 py-4 font-bold ${theme.accent} ${theme.accentText}`}
-        >
-          {copy.addToCart}
-        </button>
-      </div>
-    </ModalShell>
-  );
-}
-
-function toggleGroupOption(
-  group: ModifierGroupDTO,
-  option: ModifierOptionDTO,
-  setState: Dispatch<SetStateAction<CustomizerState | null>>,
-) {
-  setState((current) => {
-    if (!current) {
-      return current;
-    }
-
-    const selected = new Set(current.selectedOptionIds);
-    const groupSelected = selectedOptionsByGroup(group, [...selected]);
-    const isActive = selected.has(option.id);
-
-    if (isActive) {
-      selected.delete(option.id);
-    } else {
-      if (group.maxSelections === 1) {
-        for (const selectedOption of groupSelected) {
-          selected.delete(selectedOption.id);
-        }
-      } else if (groupSelected.length >= group.maxSelections) {
-        return current;
-      }
-
-      selected.add(option.id);
-    }
-
-    return {
-      ...current,
-      selectedOptionIds: [...selected],
-    };
-  });
-}
-
-function CartDrawer({
-  lines,
-  total,
-  language,
-  theme,
-  onClose,
-  onConfirm,
-}: {
-  lines: ReturnType<typeof getCartLines>;
-  total: number;
-  language: Language;
-  theme: ThemeConfig;
-  onClose: () => void;
-  onConfirm: () => void;
-}) {
-  const copy = t(language);
-  const incrementItem = useCartStore((state) => state.incrementItem);
-  const decrementItem = useCartStore((state) => state.decrementItem);
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm">
-      <aside
-        className={`ml-auto flex h-full w-full max-w-md flex-col border-l p-5 ${theme.panel} ${theme.border} ${theme.ink}`}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className={`text-xs font-bold uppercase tracking-[0.2em] ${theme.muted}`}>{copy.cart}</p>
-            <h2 className="text-3xl font-semibold">{copy.currentOrder}</h2>
-          </div>
-          <IconButton onClick={onClose} label={copy.continueBrowsing} />
-        </div>
-
-        <div className="mt-6 flex-1 space-y-3 overflow-y-auto pr-1">
-          {!lines.length ? (
-            <div className={`rounded-[24px] border p-8 text-center ${theme.panelSoft} ${theme.border}`}>
-              <ShoppingBag className="mx-auto mb-3" />
-              <p className="font-semibold">{copy.emptyCart}</p>
-            </div>
-          ) : (
-            lines.map((line) => (
-              <div
-                key={line.cartLineId ?? line.menuItemId}
-                className={`rounded-[24px] border p-3 ${theme.panelSoft} ${theme.border}`}
-              >
-                <div className="flex gap-3">
-                  {line.menuItem.image ? (
-                    <img
-                      src={line.menuItem.image}
-                      alt={localizeName(line.menuItem, language)}
-                      className="h-20 w-20 rounded-[20px] object-cover"
-                    />
-                  ) : (
-                    <div className="h-20 w-20 rounded-[20px] bg-white/20" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-semibold">{localizeName(line.menuItem, language)}</p>
-                      <p className="font-bold">{formatMoney(line.lineTotal)}</p>
-                    </div>
-                    {line.selectedModifiers.length ? (
-                      <p className={`mt-1 text-xs ${theme.muted}`}>
-                        {line.selectedModifiers.map((modifier) => localizeName(modifier, language)).join(' | ')}
-                      </p>
-                    ) : null}
-                    {line.notes ? <p className={`mt-1 text-xs ${theme.muted}`}>{line.notes}</p> : null}
-
-                    <div className="mt-3">
-                      <QuantityControl
-                        value={line.quantity}
-                        onChange={(delta) =>
-                          delta < 0
-                            ? decrementItem(line.cartLineId ?? line.menuItemId)
-                            : incrementItem(line.cartLineId ?? line.menuItemId)
-                        }
-                        theme={theme}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="border-t border-white/15 pt-4">
-          <div className="mb-4 flex items-center justify-between text-lg font-bold">
-            <span>{copy.total}</span>
-            <span>{formatMoney(total)}</span>
-          </div>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={!lines.length}
-            className={`w-full rounded-full px-5 py-4 font-bold ${theme.accent} ${theme.accentText} disabled:opacity-50`}
-          >
-            {copy.confirmOrder}
-          </button>
-        </div>
-      </aside>
-    </div>
   );
 }
 
@@ -1344,38 +820,4 @@ function OrderTrackerCard({
   );
 }
 
-function IconButton({ onClick, label }: { onClick: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-white/10"
-    >
-      <X size={18} />
-    </button>
-  );
-}
 
-function ModalShell({
-  children,
-  theme,
-  onClose,
-}: {
-  children: ReactNode;
-  theme: ThemeConfig;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-end bg-black/45 p-3 backdrop-blur-sm sm:place-items-center">
-      <div
-        className={`max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[32px] border p-5 ${theme.panel} ${theme.border} ${theme.ink} ${theme.shadow}`}
-      >
-        <div className="mb-4 flex justify-end">
-          <IconButton onClick={onClose} label="close" />
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}

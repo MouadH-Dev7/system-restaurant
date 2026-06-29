@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { OrderStatus, type Table, TableStatus } from '@prisma/client';
 import type {
   CreateFloorInput,
@@ -29,6 +29,7 @@ const NETWORK_INFO_FILE = 'network-info.json';
 
 @Injectable()
 export class TablesService {
+  private readonly logger = new Logger(TablesService.name);
   private cachedLanAddress: string | null = null;
 
   constructor(
@@ -75,8 +76,8 @@ export class TablesService {
         const content = readFileSync(filePath, 'utf8');
         return JSON.parse(content);
       }
-    } catch {
-      // ignore errors
+    } catch (error) {
+      this.logger.warn(`Failed to read shared network info: ${(error as Error).message}`);
     }
     return null;
   }
@@ -86,8 +87,8 @@ export class TablesService {
       const filePath = this.resolveSharedNetworkInfoPath();
       mkdirSync(dirname(filePath), { recursive: true });
       writeFileSync(filePath, JSON.stringify(info, null, 2), 'utf8');
-    } catch {
-      // Network info is still returned even if the shared file cannot be updated.
+    } catch (error) {
+      this.logger.warn(`Failed to write shared network info: ${(error as Error).message}`);
     }
   }
 
@@ -419,7 +420,8 @@ export class TablesService {
         : parsed.hostname;
 
       return this.withCustomerPort(hostname, configuredUrl);
-    } catch {
+    } catch (error) {
+      this.logger.warn(`Failed to normalize configured customer URL: ${(error as Error).message}`);
       return value;
     }
   }
@@ -437,7 +439,8 @@ export class TablesService {
           : parsed.hostname;
 
       return `${parsed.protocol}//${this.withCustomerPort(hostname, configuredUrl)}`.replace(/\/$/, '');
-    } catch {
+    } catch (error) {
+      this.logger.warn(`Failed to normalize customer origin: ${(error as Error).message}`);
       return this.normalizeConfiguredCustomerUrl(configuredUrl);
     }
   }

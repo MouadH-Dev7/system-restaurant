@@ -7,7 +7,9 @@ import type {
   OrderResponse,
 } from '@repo/shared-types';
 import { OrderType } from '@repo/shared-types';
-import type { KitchenLanguage } from '@/store/app.store';
+import type { Language } from '@repo/i18n';
+
+type KitchenLanguage = Language;
 
 type KitchenDictionary = {
   brandStation: string;
@@ -240,12 +242,7 @@ export function kitchenDir(language: KitchenLanguage) {
   return language === 'ar' ? 'rtl' : 'ltr';
 }
 
-export function replaceTemplate(template: string, values: Record<string, string | number>) {
-  return Object.entries(values).reduce(
-    (result, [key, value]) => result.replace(`{{${key}}}`, String(value)),
-    template,
-  );
-}
+export { replaceTemplate } from '@repo/i18n';
 
 function localizedName<T extends { name: string; nameEn?: string | null; nameFr?: string | null; nameAr?: string | null }>(
   entity: T,

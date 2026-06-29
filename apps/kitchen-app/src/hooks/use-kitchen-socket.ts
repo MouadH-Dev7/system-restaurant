@@ -1,21 +1,24 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { REALTIME_EVENTS, type OrderResponse, type RealtimeEvent } from '@repo/shared-types';
+import { REALTIME_EVENTS, type RealtimeEvent, type RealtimeOrderDelta } from '@repo/shared-types';
 import { getSocket, getSocketStatus, type SocketStatus } from '@/lib/socket';
 
 type UseKitchenSocketOptions = {
   restaurantId?: string;
-  onOrderEvent: (event: RealtimeEvent, order: OrderResponse) => void;
+  onOrderEvent: (event: RealtimeEvent, order: RealtimeOrderDelta) => void;
+  onReconnect?: () => void;
 };
 
-export function useKitchenSocket({ restaurantId, onOrderEvent }: UseKitchenSocketOptions) {
+export function useKitchenSocket({ restaurantId, onOrderEvent, onReconnect }: UseKitchenSocketOptions) {
   const [status, setStatus] = useState<SocketStatus>('connecting');
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
   const onOrderEventRef = useRef(onOrderEvent);
+  const onReconnectRef = useRef(onReconnect);
   const joinedRoomRef = useRef<string | null>(null);
 
   onOrderEventRef.current = onOrderEvent;
+  onReconnectRef.current = onReconnect;
 
   useEffect(() => {
     if (!restaurantId) {
@@ -34,11 +37,13 @@ export function useKitchenSocket({ restaurantId, onOrderEvent }: UseKitchenSocke
       if (joinedRoomRef.current !== roomKey) {
         socket.emit('kitchen:join', { restaurantId });
         joinedRoomRef.current = roomKey;
+      } else {
+        onReconnectRef.current?.();
       }
       markSync();
     };
 
-    const handlers: Array<[RealtimeEvent, (order: OrderResponse) => void]> = [
+    const handlers: Array<[RealtimeEvent, (order: RealtimeOrderDelta) => void]> = [
       [
         REALTIME_EVENTS.ORDER_CREATED,
         (order) => onOrderEventRef.current(REALTIME_EVENTS.ORDER_CREATED, order),
@@ -58,7 +63,7 @@ export function useKitchenSocket({ restaurantId, onOrderEvent }: UseKitchenSocke
     ];
     const listeners = handlers.map(([event, handler]) => [
       event,
-      (order: OrderResponse) => {
+      (order: RealtimeOrderDelta) => {
         handler(order);
         markSync();
       },

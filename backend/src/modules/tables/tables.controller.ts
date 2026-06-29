@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Header, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, HttpCode, HttpStatus, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
 import type {
   FloorDTO,
@@ -53,6 +54,7 @@ export class TablesController {
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   create(
     @Body() input: CreateTableDto,
@@ -97,6 +99,7 @@ export class TablesController {
   }
 
   @Post('floors')
+  @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   createFloor(
     @Body() input: CreateFloorDto,
@@ -119,6 +122,7 @@ export class TablesController {
   }
 
   @Delete('floors/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   deleteFloor(@Param() params: IdParamDto, @CurrentUser() user: AuthenticatedUser): Promise<FloorDTO> {
     return this.tablesService.deleteFloor(params.id, user.restaurantId);
@@ -181,6 +185,7 @@ export class TablesController {
 
   @Post(':id/call-waiter')
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   callWaiter(
     @Param() params: IdParamDto,
     @Query('restaurantId') restaurantId?: string,
@@ -203,6 +208,7 @@ export class TablesController {
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   remove(@Param() params: IdParamDto, @CurrentUser() user: AuthenticatedUser): Promise<TableDTO> {
     return this.tablesService.deleteTable(params.id, user.restaurantId);

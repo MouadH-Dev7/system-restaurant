@@ -11,11 +11,11 @@ import { getOrCreateGuestSessionId } from '@/lib/guest-session';
 import { useOrderTrackingSocket } from '@/hooks/use-order-tracking-socket';
 import { localizeName, t } from '@/lib/i18n';
 import { formatMoney } from '@/lib/money';
+import { OrderProgressBar, OrderDetailCard, formatModifierLabel } from '@/components/order-sections';
 import {
   getOrderProgress,
   getStatusHeadline,
   getStatusLabel,
-  isStepActive,
 } from '@/lib/order-status';
 import { routes } from '@/lib/routes';
 import { cancelCustomerOrder, getOrderById } from '@/services/order.service';
@@ -30,32 +30,6 @@ type OrderConfirmationProps = {
   orderId: string | null;
   initialContext: OrderContextDTO | null;
 };
-
-function formatModifierLabel(
-  modifier: NonNullable<OrderResponse['items'][number]['modifiers']>[number],
-  language: ReturnType<typeof useLanguageStore.getState>['language'],
-) {
-  const group = localizeName(
-    {
-      name: modifier.groupName,
-      nameEn: modifier.groupNameEn,
-      nameFr: modifier.groupNameFr,
-      nameAr: modifier.groupNameAr,
-    },
-    language,
-  );
-  const option = localizeName(
-    {
-      optionName: modifier.optionName,
-      optionNameEn: modifier.optionNameEn,
-      optionNameFr: modifier.optionNameFr,
-      optionNameAr: modifier.optionNameAr,
-    },
-    language,
-  );
-
-  return group ? `${group}: ${option}` : option;
-}
 
 export function OrderConfirmation({ orderId, initialContext }: OrderConfirmationProps) {
   const router = useRouter();
@@ -263,90 +237,9 @@ export function OrderConfirmation({ orderId, initialContext }: OrderConfirmation
           ) : null}
         </section>
 
-        <section className="mt-8 rounded-[28px] border border-[#e1cdb5] bg-white p-6 shadow-[0_20px_60px_rgba(70,47,26,0.08)]">
-          <div className="relative mb-8 px-2">
-            <div className="absolute left-6 right-6 top-5 h-1 rounded-full bg-[#efe4d7]" />
-            <div
-              className="absolute left-6 top-5 h-1 rounded-full bg-[#b26f2f] transition-all duration-500"
-              style={{ width: `calc((100% - 3rem) * ${progress / 100})` }}
-            />
-            <div className="relative z-10 grid grid-cols-4 gap-2">
-              {steps.map((step) => {
-                const active = isStepActive(order?.status, step.key);
-                return (
-                  <div key={step.key} className="flex flex-col items-center gap-2 text-center">
-                    <span
-                      className={`grid h-10 w-10 place-items-center rounded-full ${
-                        active ? 'bg-[#b26f2f] text-white' : 'bg-[#efe4d7] text-[#9e8c7a]'
-                      }`}
-                    >
-                      <step.icon className="h-4 w-4" aria-hidden="true" />
-                    </span>
-                    <span className="text-xs font-bold text-[#6b5c4f]">{step.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        <OrderProgressBar steps={steps} status={order?.status} progress={progress} />
 
-          <h2 className="mb-4 text-xl font-black text-[#1f1b17]">{copy.orderDetails}</h2>
-
-          {order ? (
-            <div className="space-y-3">
-              {order.items.map((line) => (
-                <div
-                  key={line.id ?? line.menuItemId}
-                  className="flex justify-between gap-4 rounded-[20px] border border-[#f0e6da] bg-[#fffdfa] p-4 text-sm"
-                >
-                  <div className="text-[#5b4c40]">
-                    <p className="font-semibold">
-                      {line.quantity} x{' '}
-                      {line.menuItem ? localizeName(line.menuItem, language) : line.menuItemId}
-                    </p>
-                    {line.modifiers?.length ? (
-                      <p className="mt-1 text-xs text-[#8b7b6d]">
-                        {line.modifiers.map((modifier) => formatModifierLabel(modifier, language)).join(' | ')}
-                      </p>
-                    ) : null}
-                    {line.notes ? <p className="mt-1 text-xs text-[#8b7b6d]">{line.notes}</p> : null}
-                  </div>
-                  <span className="font-bold text-[#2d241d]">{formatMoney(line.price * line.quantity)}</span>
-                </div>
-              ))}
-
-              <div className="space-y-2 border-t border-[#efe4d7] pt-4 text-sm font-bold text-[#1f1b17]">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>{formatMoney(order.subtotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Discounts</span>
-                  <span>{formatMoney(order.discountTotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Tax</span>
-                  <span>{formatMoney(order.taxTotal)}</span>
-                </div>
-                <div className="flex justify-between text-lg">
-                  <span>{copy.total}</span>
-                  <span className="text-[#b26f2f]">{formatMoney(order.grandTotal)}</span>
-                </div>
-                <div className="flex justify-between text-xs text-[#7d6d5f]">
-                  <span>Paid</span>
-                  <span>{formatMoney(order.paidAmount)}</span>
-                </div>
-                <div className="flex justify-between text-xs text-[#7d6d5f]">
-                  <span>Remaining</span>
-                  <span>{formatMoney(order.remainingAmount)}</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-[#7d6d5f]">
-              {failed ? copy.orderLoadFailed : copy.connecting}
-            </p>
-          )}
-        </section>
+        <OrderDetailCard order={order} failed={failed} language={language} copy={copy} />
 
         {otherTableOrders.length ? (
           <section className="mt-8 rounded-[28px] border border-[#e1cdb5] bg-white p-6 shadow-[0_20px_60px_rgba(70,47,26,0.08)]">

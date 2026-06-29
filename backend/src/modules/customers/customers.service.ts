@@ -14,6 +14,7 @@ export class CustomersService {
     const customers = await this.prisma.customerProfile.findMany({
       where: { restaurantId },
       orderBy: [{ totalSpent: 'desc' }, { name: 'asc' }],
+      take: 300,
     });
 
     return customers.map((customer) => this.toDto(customer));
@@ -71,7 +72,7 @@ export class CustomersService {
     tier: CustomerProfileDTO['tier'];
     notes: string | null;
     totalOrders: number;
-    totalSpent: number;
+    totalSpent: number | { toNumber(): number };
     lastVisitAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
@@ -85,7 +86,7 @@ export class CustomersService {
       tier: customer.tier,
       notes: customer.notes,
       totalOrders: customer.totalOrders,
-      totalSpent: customer.totalSpent,
+      totalSpent: Number(customer.totalSpent),
       lastVisitAt: customer.lastVisitAt?.toISOString() ?? null,
       createdAt: customer.createdAt.toISOString(),
       updatedAt: customer.updatedAt.toISOString(),

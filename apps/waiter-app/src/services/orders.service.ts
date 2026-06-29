@@ -6,11 +6,17 @@ import type {
 } from '@repo/shared-types';
 import { http } from '@/lib/http';
 
-export async function listWaiterOrders(restaurantId: string, view: 'list' | 'table' = 'list') {
+export async function listWaiterOrders(restaurantId: string, view: 'list' | 'table' = 'list', signal?: AbortSignal) {
   const { data } = await http.get<OrderResponse[] | TableOrdersGroupDTO[]>('/orders/staff/list', {
     params: { scope: 'kitchen', view },
+    signal,
   });
 
+  return data;
+}
+
+export async function getWaiterOrder(orderId: string) {
+  const { data } = await http.get<OrderResponse>(`/orders/staff/${orderId}`);
   return data;
 }
 

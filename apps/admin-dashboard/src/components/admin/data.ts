@@ -2,12 +2,14 @@ import {
   Activity,
   BarChart3,
   ChefHat,
+  ClipboardList,
   FileSpreadsheet,
   History,
   LayoutDashboard,
   MenuSquare,
   Package,
   Printer,
+  Truck,
   Wallet,
   ReceiptText,
   BadgePercent,
@@ -15,6 +17,7 @@ import {
   Network,
   Table2,
   UserCheck,
+  FlaskConical,
 } from 'lucide-react';
 
 export type Screen =
@@ -24,6 +27,7 @@ export type Screen =
   | 'tables'
   | 'kitchen'
   | 'inventory'
+  | 'suppliers'
   | 'staff'
   | 'printers'
   | 'analytics'
@@ -34,7 +38,9 @@ export type Screen =
   | 'payments'
   | 'discounts'
   | 'networks'
-  | 'settings';
+  | 'settings'
+  | 'consumption-logs'
+  | 'recipe-mapper';
 
 export type NavItem = {
   id: Screen;
@@ -50,6 +56,9 @@ export const navItems: NavItem[] = [
   { id: 'tables', labelKey: 'nav.tables', href: '/tables', icon: Table2 },
   { id: 'kitchen', labelKey: 'nav.kitchen', href: '/kitchen', icon: ChefHat },
   { id: 'inventory', labelKey: 'nav.inventory', href: '/inventory', icon: Package },
+  { id: 'suppliers', labelKey: 'nav.suppliers', href: '/suppliers', icon: Truck },
+  { id: 'recipe-mapper', labelKey: 'nav.recipeMapper', href: '/recipe-mapper', icon: FlaskConical },
+  { id: 'consumption-logs', labelKey: 'nav.consumptionLogs', href: '/consumption-logs', icon: ClipboardList },
   { id: 'staff', labelKey: 'nav.staff', href: '/staff', icon: UserCheck },
   { id: 'printers', labelKey: 'nav.printers', href: '/printers', icon: Printer },
   { id: 'analytics', labelKey: 'nav.analytics', href: '/analytics', icon: BarChart3 },
@@ -70,11 +79,13 @@ export function statusBadge(status: string) {
     case 'In Stock':
     case 'AVAILABLE':
     case 'Available':
+    case 'ACTIVE':
       return 'bg-emerald-50 text-emerald-700';
     case 'PREPARING':
     case 'Low Stock':
     case 'RESERVED':
     case 'Reserved':
+    case 'INACTIVE':
       return 'bg-amber-50 text-amber-700';
     case 'READY':
     case 'OCCUPIED':

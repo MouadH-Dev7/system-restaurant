@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AuditLogStatus } from '@prisma/client';
+import { AuditLogStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuditEntryInput } from './audit.types';
 
@@ -8,6 +8,11 @@ export class AuditTrailService {
   constructor(private readonly prisma: PrismaService) {}
 
   async record(input: AuditEntryInput) {
+    const actorRole = String(input.actor.role);
+    if (actorRole === UserRole.ADMIN || actorRole === UserRole.MANAGER) {
+      return;
+    }
+
     return this.prisma.auditLog.create({
       data: {
         restaurantId: input.actor.restaurantId,

@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { FloorDTO, TableDTO, TableStatus, UpdateTableInput } from '@repo/shared-types';
-import { Download, Eye, Pencil, Plus, Printer, Trash2, X } from 'lucide-react';
+import type { FloorDTO, TableDTO, UpdateTableInput } from '@repo/shared-types';
+import { Download, Eye, Pencil, Plus, Printer, Trash2 } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useI18n } from '@/hooks/use-i18n';
 import { getSettings } from '@/services/settings.service';
@@ -17,30 +17,8 @@ import {
   updateFloor,
   updateTable,
 } from '@/services/tables.service';
-
-type TableFormState = {
-  number: string;
-  capacity: string;
-  status: TableStatus;
-  floorId: string;
-  shape: 'round' | 'square';
-};
-
-type FloorFormState = {
-  name: string;
-};
-
-const initialTableForm: TableFormState = {
-  number: '',
-  capacity: '',
-  status: 'AVAILABLE',
-  floorId: '',
-  shape: 'round',
-};
-
-const initialFloorForm: FloorFormState = {
-  name: '',
-};
+import { FloorManagerSection, TableFormSection, QrCodeModalSection } from './table-sections';
+import type { TableFormState, FloorFormState, FloorManagerSectionHandle, TableFormSectionHandle } from './table-sections';
 
 export function TablesScreen() {
   const { t, statusLabel } = useI18n();
@@ -51,19 +29,15 @@ export function TablesScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tableForm, setTableForm] = useState<TableFormState>(initialTableForm);
-  const [floorForm, setFloorForm] = useState<FloorFormState>(initialFloorForm);
-  const [editingTable, setEditingTable] = useState<TableDTO | null>(null);
-  const [editingFloor, setEditingFloor] = useState<FloorDTO | null>(null);
   const [qrPreviewTable, setQrPreviewTable] = useState<TableDTO | null>(null);
-  const [showTableModal, setShowTableModal] = useState(false);
-  const [showFloorModal, setShowFloorModal] = useState(false);
   const [selectedFloorId, setSelectedFloorId] = useState<string>('ALL');
   const [selectedLayoutTableId, setSelectedLayoutTableId] = useState<string | null>(null);
   const [moveMode, setMoveMode] = useState(false);
   const [draggingTableId, setDraggingTableId] = useState<string | null>(null);
   const [positionOverrides, setPositionOverrides] = useState<Record<string, { x: number; y: number }>>({});
   const mapRef = useRef<HTMLDivElement | null>(null);
+  const floorManagerRef = useRef<FloorManagerSectionHandle>(null);
+  const tableFormRef = useRef<TableFormSectionHandle>(null);
 
   useEffect(() => {
     void loadCurrentData();
@@ -256,69 +230,16 @@ export function TablesScreen() {
     await persistLayoutPosition(tableId, override.x, override.y);
   }
 
-  function openCreateTableModal(floorId?: string) {
-    setEditingTable(null);
-    setTableForm({
-      ...initialTableForm,
-      floorId: floorId ?? sortedFloors[0]?.id ?? '',
-    });
-    setShowTableModal(true);
-  }
-
-  function openEditTableModal(table: TableDTO) {
-    setEditingTable(table);
-    setTableForm({
-      number: String(table.number),
-      capacity: String(table.capacity),
-      status: table.status,
-      floorId: table.floorId ?? '',
-      shape: table.shape ?? 'round',
-    });
-    setShowTableModal(true);
-  }
-
-  function closeTableModal() {
-    if (saving) {
-      return;
-    }
-
-    setShowTableModal(false);
-    setEditingTable(null);
-    setTableForm(initialTableForm);
-  }
-
-  function openCreateFloorModal() {
-    setEditingFloor(null);
-    setFloorForm(initialFloorForm);
-    setShowFloorModal(true);
-  }
-
-  function openEditFloorModal(floor: FloorDTO) {
-    setEditingFloor(floor);
-    setFloorForm({ name: floor.name });
-    setShowFloorModal(true);
-  }
-
-  function closeFloorModal() {
-    if (saving) {
-      return;
-    }
-
-    setShowFloorModal(false);
-    setEditingFloor(null);
-    setFloorForm(initialFloorForm);
-  }
-
-  async function handleSaveTable() {
+  async function handleSaveTable(form: TableFormState, editing: TableDTO | null) {
     if (!restaurantId) {
       setError(t('tables.title'));
       return;
     }
 
-    const number = Number(tableForm.number);
-    const capacity = Number(tableForm.capacity);
+    const number = Number(form.number);
+    const capacity = Number(form.capacity);
 
-    if (!number || !capacity || !tableForm.floorId) {
+    if (!number || !capacity || !form.floorId) {
       setError(`${t('tables.number')} / ${t('tables.capacity')}`);
       return;
     }
@@ -327,40 +248,38 @@ export function TablesScreen() {
       setSaving(true);
       setError(null);
 
-      const floor = sortedFloors.find((entry) => entry.id === tableForm.floorId);
+      const floor = sortedFloors.find((entry) => entry.id === form.floorId);
       const payload: UpdateTableInput & {
         restaurantId?: string;
       } = {
         number,
         capacity,
-        status: tableForm.status,
-        floorId: tableForm.floorId,
+        status: form.status,
+        floorId: form.floorId,
         floorName: floor?.name ?? null,
         posX: null,
         posY: null,
-        shape: tableForm.shape,
+        shape: form.shape,
       };
 
-      if (editingTable) {
-        const updated = await updateTable(editingTable.id, payload);
+      if (editing) {
+        const updated = await updateTable(editing.id, payload);
         setTables((current) => current.map((table) => (table.id === updated.id ? updated : table)));
       } else {
         const created = await createTable({
           restaurantId,
           number,
           capacity,
-          status: tableForm.status,
-          floorId: tableForm.floorId,
+          status: form.status,
+          floorId: form.floorId,
           floorName: floor?.name ?? null,
           posX: null,
           posY: null,
-          shape: tableForm.shape,
+          shape: form.shape,
         });
         setTables((current) => [...current, created].sort((a, b) => a.number - b.number));
         setQrPreviewTable(created);
       }
-
-      closeTableModal();
     } catch (nextError) {
       setError(getApiErrorMessage(nextError, t('tables.createTable')));
     } finally {
@@ -368,8 +287,8 @@ export function TablesScreen() {
     }
   }
 
-  async function handleSaveFloor() {
-    if (!floorForm.name.trim()) {
+  async function handleSaveFloor(draft: FloorFormState, editing: FloorDTO | null) {
+    if (!draft.name.trim()) {
       setError(t('tables.title'));
       return;
     }
@@ -378,12 +297,12 @@ export function TablesScreen() {
       setSaving(true);
       setError(null);
 
-      if (editingFloor) {
-        const updated = await updateFloor(editingFloor.id, { name: floorForm.name.trim() });
+      if (editing) {
+        const updated = await updateFloor(editing.id, { name: draft.name.trim() });
         setFloors((current) => current.map((floor) => (floor.id === updated.id ? updated : floor)));
       } else {
         const created = await createFloor({
-          name: floorForm.name.trim(),
+          name: draft.name.trim(),
           sortOrder: floors.length,
         });
         setFloors((current) => [...current, created]);
@@ -391,7 +310,6 @@ export function TablesScreen() {
       }
 
       await loadCurrentData();
-      closeFloorModal();
     } catch (nextError) {
       setError(getApiErrorMessage(nextError, t('tables.createTitle')));
     } finally {
@@ -505,12 +423,12 @@ export function TablesScreen() {
             ))}
           </select>
 
-          <button type="button" className="ghost-btn" onClick={openCreateFloorModal}>
+          <button type="button" className="ghost-btn" onClick={() => floorManagerRef.current?.openCreateFloorModal()}>
             <Plus size={16} />
             <span>Floor</span>
           </button>
 
-          <button type="button" className="primary-btn" onClick={() => openCreateTableModal()}>
+          <button type="button" className="primary-btn" onClick={() => tableFormRef.current?.openCreateTableModal()}>
             <Plus size={16} />
             <span>{t('tables.createTable')}</span>
           </button>
@@ -636,7 +554,7 @@ export function TablesScreen() {
                         <button
                           type="button"
                           className="ghost-btn small"
-                          onClick={() => openCreateTableModal(floor.id)}
+                          onClick={() => tableFormRef.current?.openCreateTableModal(floor.id)}
                         >
                           <Plus size={14} />
                           <span>{t('tables.createTable')}</span>
@@ -644,7 +562,7 @@ export function TablesScreen() {
                         <button
                           type="button"
                           className="ghost-btn small"
-                          onClick={() => openEditFloorModal(floor)}
+                          onClick={() => floorManagerRef.current?.openEditFloorModal(floor)}
                         >
                           <Pencil size={14} />
                           <span>{t('tables.edit')}</span>
@@ -700,7 +618,7 @@ export function TablesScreen() {
                               <button
                                 type="button"
                                 className="ghost-btn small"
-                                onClick={() => openEditTableModal(table)}
+                                onClick={() => tableFormRef.current?.openEditTableModal(table)}
                               >
                                 <Pencil size={14} />
                                 <span>{t('tables.edit')}</span>
@@ -800,178 +718,25 @@ export function TablesScreen() {
         </aside>
       </section>
 
-      {showFloorModal ? (
-        <div className="modal-backdrop">
-          <div className="modal-card">
-            <div className="modal-head">
-              <div>
-                <h3>{editingFloor ? t('tables.editTitle') : t('tables.createTitle')}</h3>
-                <p>{editingFloor ? 'Rename this floor.' : 'Create a floor before adding its tables.'}</p>
-              </div>
-              <button type="button" className="icon-btn" onClick={closeFloorModal}>
-                <X size={16} />
-              </button>
-            </div>
+      <FloorManagerSection
+        saving={saving}
+        onSaveFloor={handleSaveFloor}
+        onDeleteFloor={handleDeleteFloor}
+      />
 
-            <div className="form-stack">
-              <input
-                type="text"
-                placeholder="Floor name"
-                value={floorForm.name}
-                onChange={(event) => setFloorForm({ name: event.target.value })}
-              />
+      <TableFormSection
+        saving={saving}
+        floors={sortedFloors}
+        onSaveTable={handleSaveTable}
+      />
 
-              <div className="modal-actions">
-                <button type="button" className="ghost-btn" onClick={closeFloorModal}>
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="button"
-                  className="primary-btn"
-                  onClick={() => void handleSaveFloor()}
-                  disabled={saving}
-                >
-                  <span>{saving ? t('common.saving') : editingFloor ? t('tables.edit') : 'Create Floor'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {showTableModal ? (
-        <div className="modal-backdrop">
-          <div className="modal-card">
-            <div className="modal-head">
-              <div>
-                <h3>
-                  {editingTable
-                    ? `${t('tables.editTitle')} ${editingTable.number}`
-                    : t('tables.createTitle')}
-                </h3>
-                <p>{editingTable ? t('tables.editDescription') : t('tables.createDescription')}</p>
-              </div>
-              <button type="button" className="icon-btn" onClick={closeTableModal}>
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="form-stack">
-              <select
-                value={tableForm.floorId}
-                onChange={(event) => setTableForm((current) => ({ ...current, floorId: event.target.value }))}
-              >
-                <option value="">Select floor</option>
-                {sortedFloors.map((floor) => (
-                  <option key={floor.id} value={floor.id}>
-                    {floor.name}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="number"
-                placeholder={t('tables.number')}
-                value={tableForm.number}
-                onChange={(event) =>
-                  setTableForm((current) => ({ ...current, number: event.target.value }))
-                }
-              />
-              <input
-                type="number"
-                placeholder={t('tables.capacity')}
-                value={tableForm.capacity}
-                onChange={(event) =>
-                  setTableForm((current) => ({ ...current, capacity: event.target.value }))
-                }
-              />
-              <select
-                value={tableForm.shape}
-                onChange={(event) =>
-                  setTableForm((current) => ({
-                    ...current,
-                    shape: event.target.value as 'round' | 'square',
-                  }))
-                }
-              >
-                <option value="round">Round</option>
-                <option value="square">Square</option>
-              </select>
-              <select
-                value={tableForm.status}
-                onChange={(event) =>
-                  setTableForm((current) => ({ ...current, status: event.target.value as TableStatus }))
-                }
-              >
-                <option value="AVAILABLE">{statusLabel('AVAILABLE')}</option>
-                <option value="OCCUPIED">{statusLabel('OCCUPIED')}</option>
-                <option value="RESERVED">{statusLabel('RESERVED')}</option>
-              </select>
-
-              <div className="modal-actions">
-                <button type="button" className="ghost-btn" onClick={closeTableModal}>
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="button"
-                  className="primary-btn"
-                  onClick={() => void handleSaveTable()}
-                  disabled={saving}
-                >
-                  <span>
-                    {saving
-                      ? t('common.saving')
-                      : editingTable
-                        ? t('tables.editTitle')
-                        : t('tables.createTable')}
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {qrPreviewTable ? (
-        <div className="modal-backdrop">
-          <div className="modal-card qr-modal">
-            <div className="modal-head">
-              <div>
-                <h3>{t('tables.qrPreview')}</h3>
-                <p>
-                  {t('tables.table')} {qrPreviewTable.number} - {resolveFloorName(qrPreviewTable)}
-                </p>
-              </div>
-              <button type="button" className="icon-btn" onClick={() => setQrPreviewTable(null)}>
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="qr-modal-body">
-              <img
-                src={qrPreviewTable.qrCodeUrl}
-                alt={`QR ${t('tables.table')} ${qrPreviewTable.number}`}
-                className="qr-modal-image"
-              />
-              <strong>{t('tables.scanToOrder')}</strong>
-              <a className="qr-url" href={qrPreviewTable.qrPayload} target="_blank" rel="noreferrer">
-                {qrPreviewTable.qrPayload}
-              </a>
-            </div>
-
-            <div className="modal-actions">
-              <button type="button" className="ghost-btn" onClick={() => downloadQr(qrPreviewTable)}>
-                <Download size={14} />
-                <span>{t('tables.downloadPng')}</span>
-              </button>
-              <button type="button" className="primary-btn" onClick={() => printQr(qrPreviewTable)}>
-                <Printer size={14} />
-                <span>{t('tables.printA4')}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <QrCodeModalSection
+        table={qrPreviewTable}
+        floorName={qrPreviewTable ? resolveFloorName(qrPreviewTable) : ''}
+        onDownload={downloadQr}
+        onPrint={printQr}
+        onClose={() => setQrPreviewTable(null)}
+      />
     </>
   );
 }

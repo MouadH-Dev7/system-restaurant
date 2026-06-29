@@ -1,11 +1,13 @@
 import {
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
 } from 'class-validator';
-import type { UpdateInventoryItemInput } from '@repo/shared-types';
+import type { UpdateInventoryItemInput, InventoryUnit } from '@repo/shared-types';
 
 export class UpdateInventoryItemDto implements UpdateInventoryItemInput {
   @IsOptional()
@@ -14,9 +16,8 @@ export class UpdateInventoryItemDto implements UpdateInventoryItemInput {
   name?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(32)
-  unit?: string;
+  @IsEnum(['KG', 'GRAM', 'LITER', 'ML', 'PIECE', 'PACK'] as const)
+  unit?: InventoryUnit;
 
   @IsOptional()
   @IsNumber()
@@ -34,7 +35,6 @@ export class UpdateInventoryItemDto implements UpdateInventoryItemInput {
   unitPrice?: number;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(160)
-  supplier?: string;
+  @IsUUID()
+  supplierId?: string | null;
 }

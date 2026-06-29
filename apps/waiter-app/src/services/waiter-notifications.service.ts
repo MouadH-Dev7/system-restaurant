@@ -1,8 +1,8 @@
 import type { WaiterNotificationDTO } from '@repo/shared-types';
 import { http } from '@/lib/http';
 
-export async function listWaiterNotifications() {
-  const { data } = await http.get<WaiterNotificationDTO[]>('/tables/waiter-notifications/list');
+export async function listWaiterNotifications(signal?: AbortSignal) {
+  const { data } = await http.get<WaiterNotificationDTO[]>('/tables/waiter-notifications/list', { signal });
   return data;
 }
 

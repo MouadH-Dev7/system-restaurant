@@ -1,8 +1,8 @@
 import type { TableDTO, UpdateTableInput } from '@repo/shared-types';
 import { http } from '@/lib/http';
 
-export async function listRestaurantTables(restaurantId: string) {
-  const { data } = await http.get<TableDTO[]>('/tables');
+export async function listRestaurantTables(restaurantId: string, signal?: AbortSignal) {
+  const { data } = await http.get<TableDTO[]>('/tables', { signal });
 
   return data;
 }

@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
-import { REALTIME_EVENTS, type OrderResponse, type RealtimeEvent } from '@repo/shared-types';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { REALTIME_EVENTS, type RealtimeEvent, type RealtimeOrderDelta } from '@repo/shared-types';
 import { getOrCreateGuestSessionId } from '@/lib/guest-session';
 import { getSocket, getSocketStatus } from '@/lib/socket';
-import { listGuestOrders } from '@/services/order.service';
+import { getOrderById, listGuestOrders } from '@/services/order.service';
 import { useGuestOrdersStore } from '@/store/guest-orders.store';
 import { useLanguageStore } from '@/store/language.store';
 import { useAppStore } from '@/store/app.store';
@@ -28,6 +28,9 @@ export function useGuestOrders(context: OrderContextDTO | null) {
   const setLoading = useGuestOrdersStore((state) => state.setLoading);
   const joinedRoomRef = useRef<string | null>(null);
 
+  const abortRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const reload = useCallback(async () => {
     if (!context) {
       setOrders([]);
@@ -41,6 +44,10 @@ export function useGuestOrders(context: OrderContextDTO | null) {
     try {
       const nextOrders = await listGuestOrders(context, guestSessionId);
       setOrders(nextOrders);
+      const tableNum = nextOrders[0]?.table?.number;
+      if (tableNum != null) {
+        useAppStore.getState().setDisplayTableNumber(tableNum);
+      }
     } catch {
       setOrders([]);
     } finally {
@@ -62,17 +69,39 @@ export function useGuestOrders(context: OrderContextDTO | null) {
     const roomKey = `customer:${orderContext.restaurantId}:${orderContext.tableId}`;
 
     const handleConnect = () => {
-      if (joinedRoomRef.current !== roomKey) {
-        socket.emit('customer:join', {
-          restaurantId: orderContext.restaurantId,
-          tableId: orderContext.tableId,
-        });
-        joinedRoomRef.current = roomKey;
-      }
+      const guestSessionId = getOrCreateGuestSessionId(orderContext);
+      socket.emit('customer:join', {
+        restaurantId: orderContext.restaurantId,
+        tableId: orderContext.tableId,
+        guestSessionId,
+      });
+      joinedRoomRef.current = roomKey;
     };
 
-    const handleOrderEvent = (order: OrderResponse) => {
-      upsertOrder(order);
+    const handleOrderEvent = (delta: RealtimeOrderDelta) => {
+      const orderId = delta.orderId;
+      if (!orderId) return;
+
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      abortRef.current?.abort();
+
+      debounceRef.current = setTimeout(() => {
+        const controller = new AbortController();
+        abortRef.current = controller;
+
+        void getOrderById(orderId, orderContext)
+          .then((freshOrder) => {
+            upsertOrder(freshOrder);
+            const tableNum = freshOrder.table?.number;
+            if (tableNum != null) {
+              useAppStore.getState().setDisplayTableNumber(tableNum);
+            }
+          })
+          .catch((err) => {
+            if (err instanceof DOMException && err.name === 'AbortError') return;
+            console.error('[useGuestOrders] Failed to sync order:', err);
+          });
+      }, 100);
     };
 
     const handleWaiterAccepted = (payload: any) => {

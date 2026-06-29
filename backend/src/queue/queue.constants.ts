@@ -76,6 +76,10 @@ export const NOTIFICATION_QUEUE_JOBS = {
     name: 'order-paid',
     type: QueueJobType.NOTIFY_ORDER_PAID,
   },
+  ORDER_CANCELLED: {
+    name: 'order-cancelled',
+    type: QueueJobType.NOTIFY_ORDER_CANCELLED,
+  },
 } as const;
 
 export const ANALYTICS_QUEUE_JOBS = {

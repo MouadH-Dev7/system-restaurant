@@ -107,7 +107,7 @@ export function OrdersScreen() {
 
                       <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
                         <span>{formatCountLabel(order.itemCount, t.item, t.items, language)}</span>
-                        <span className="font-bold text-slate-900">{formatMoney(order.grandTotal)}</span>
+                        <span className="font-bold text-slate-900">{formatMoney(order.grandTotal ?? 0)}</span>
                       </div>
 
                       <div className="mt-4 flex gap-2">

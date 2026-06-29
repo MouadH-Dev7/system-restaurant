@@ -89,8 +89,8 @@ export function mapOrderToTicket(
     tableNumber: walkIn ? 0 : (order.table?.number ?? 0),
     guestName: formatGuestLabel(order, language),
     guestSessionId: order.guestSessionId ?? null,
-    guestCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
-    itemCount: order.items.length,
+    guestCount: (order.items ?? []).reduce((sum, item) => sum + item.quantity, 0),
+    itemCount: (order.items ?? []).length,
     grandTotal: order.grandTotal,
     paidAmount: order.paidAmount,
     remainingAmount: order.remainingAmount,
@@ -107,7 +107,7 @@ export function mapOrderToTicket(
 export function mapOrderItemsToLines(order: OrderResponse, language: PosLanguage): OrderLine[] {
   const t = posT(language);
 
-  return order.items.map((item) => ({
+  return (order.items ?? []).map((item) => ({
     id: item.id,
     menuItemId: item.menuItemId,
     name: item.menuItem ? localizeMenuItemName(item.menuItem, language) : t.item,
@@ -117,7 +117,6 @@ export function mapOrderItemsToLines(order: OrderResponse, language: PosLanguage
     category: 'Menu',
     modifiers: [
       ...(item.modifiers?.map((modifier) => localizeModifierName(modifier, language)) ?? []),
-      ...(item.notes ? [item.notes] : []),
     ].filter(Boolean),
     status: lineStatusFromOrder(order.status),
   }));
@@ -151,7 +150,7 @@ export function mapOrderToActivity(order: OrderResponse, language: PosLanguage):
   return {
     id: order.id,
     title: `${tableLabel} - ${formatGuestLabel(order, language)}`,
-    detail: `${formatCountLabel(order.items.length, t.item, t.items, language)} - ${formatMoney(order.remainingAmount > 0 ? order.remainingAmount : order.grandTotal)}`,
+    detail: `${formatCountLabel((order.items ?? []).length, t.item, t.items, language)} - ${formatMoney((order.remainingAmount ?? 0) > 0 ? (order.remainingAmount ?? 0) : (order.grandTotal ?? 0))}`,
     time: formatRelativeMinutes(order.createdAt, language),
     tone: toneMap[order.status],
   };
@@ -173,7 +172,7 @@ export function orderToTableSummary(
     remainingAmount: order.remainingAmount,
     financialStatus: order.financialStatus,
     status: order.status,
-    itemCount: order.items.length,
+    itemCount: (order.items ?? []).length,
     createdAt: order.createdAt,
   };
 }

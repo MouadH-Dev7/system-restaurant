@@ -4,10 +4,9 @@ import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { AppHeader } from '@/components/app-header';
 import { TableSessionSync } from '@/components/table-session-sync';
-import { CartItemRow } from '@/components/cart-item-row';
+import { CartReviewList } from '@/components/cart-sections';
 import { getCartLines, getCartTotal, getDraftItems, useCartStore } from '@/store/cart.store';
 import { useLanguageStore } from '@/store/language.store';
-import { formatMoney } from '@/lib/money';
 import { routes } from '@/lib/routes';
 import { t } from '@/lib/i18n';
 import { useAppStore } from '@/store/app.store';
@@ -53,25 +52,7 @@ export function CartReview({ initialContext }: CartReviewProps) {
             {copy.emptyCart}
           </div>
         ) : (
-          <div className="space-y-5">
-            {lines.map((line) => (
-              <CartItemRow key={line.menuItemId} line={line} />
-            ))}
-
-            <div className="rounded-lg bg-white p-5">
-              <div className="flex items-center justify-between text-xl font-black">
-                <span>Total</span>
-                <span className="text-[#ff5722]">{formatMoney(total)}</span>
-              </div>
-            </div>
-
-            <Link
-              href={routes.checkout(context)}
-              className="flex h-14 w-full items-center justify-center rounded-lg bg-[#ff5722] text-xl font-black text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]"
-            >
-              {copy.checkout}
-            </Link>
-          </div>
+          <CartReviewList lines={lines} total={total} context={context} copy={copy} />
         )}
       </main>
     </div>

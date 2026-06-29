@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { defaultLocale, isRtl } from '@/lib/i18n';
-
-const ADMIN_LANGUAGE_STORAGE_KEY = 'khalou-fodil:admin-language';
+import { STORAGE_KEYS } from '@/lib/constants';
 
 export type SystemNotification = {
   id: string;
@@ -17,19 +16,8 @@ type AppState = {
   language: 'en' | 'fr' | 'ar';
   setLanguage: (language: 'en' | 'fr' | 'ar') => void;
   direction: 'ltr' | 'rtl';
-  setDirection: (direction: 'ltr' | 'rtl') => void;
   locale: string;
-  setLocale: (locale: string) => void;
-  dateFormat: string;
-  setDateFormat: (dateFormat: string) => void;
-  currency: string;
-  setCurrency: (currency: string) => void;
 
-  // Global Search
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-
-  // Notifications Center
   notifications: SystemNotification[];
   addNotification: (notification: Omit<SystemNotification, 'id' | 'timestamp' | 'read'>) => void;
   markAsRead: (id: string) => void;
@@ -42,7 +30,7 @@ function readStoredLanguage(): AppState['language'] {
     return 'ar';
   }
 
-  const value = window.localStorage.getItem(ADMIN_LANGUAGE_STORAGE_KEY);
+  const value = window.localStorage.getItem(STORAGE_KEYS.ADMIN_LANGUAGE);
   return value === 'en' || value === 'fr' || value === 'ar' ? value : 'ar';
 }
 
@@ -54,7 +42,7 @@ export const useAppStore = create<AppState>((set) => ({
   language: initialLanguage,
   setLanguage: (language) => {
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(ADMIN_LANGUAGE_STORAGE_KEY, language);
+      window.localStorage.setItem(STORAGE_KEYS.ADMIN_LANGUAGE, language);
     }
     set({
       language,
@@ -63,19 +51,8 @@ export const useAppStore = create<AppState>((set) => ({
     });
   },
   direction: isRtl(initialLanguage) ? 'rtl' : 'ltr',
-  setDirection: (direction) => set({ direction }),
   locale: defaultLocale(initialLanguage),
-  setLocale: (locale) => set({ locale }),
-  dateFormat: 'dd/MM/yyyy',
-  setDateFormat: (dateFormat) => set({ dateFormat }),
-  currency: 'DZD',
-  setCurrency: (currency) => set({ currency }),
 
-  // Global Search
-  searchQuery: '',
-  setSearchQuery: (searchQuery) => set({ searchQuery }),
-
-  // Notifications Center
   notifications: [],
   addNotification: (notification) =>
     set((state) => ({

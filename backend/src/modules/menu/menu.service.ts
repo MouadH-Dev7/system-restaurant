@@ -31,6 +31,20 @@ const menuItemInclude = {
   },
 } satisfies Prisma.MenuItemInclude;
 
+function toMenuItemDTO(item: Record<string, unknown>): MenuItemDTO {
+  return {
+    ...item as MenuItemDTO,
+    price: Number(item.price),
+    modifierGroups: ((item.modifierGroups ?? []) as Array<Record<string, unknown>>).map((g) => ({
+      ...g as ModifierGroupDTO,
+      options: ((g.options ?? []) as Array<Record<string, unknown>>).map((o) => ({
+        ...o as ModifierOptionDTO,
+        priceDelta: Number(o.priceDelta),
+      })),
+    })),
+  } as MenuItemDTO;
+}
+
 @Injectable()
 export class MenuService {
   constructor(
@@ -61,7 +75,7 @@ export class MenuService {
       await this.validateMenu(menuId, restaurantId);
     }
 
-    return this.prisma.menuItem.findMany({
+    const items = await this.prisma.menuItem.findMany({
       where: {
         restaurantId,
         ...(menuId ? { menuId } : {}),
@@ -71,6 +85,8 @@ export class MenuService {
       include: menuItemInclude,
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
+
+    return items.map(toMenuItemDTO);
   }
 
   async createMenu(input: CreateMenuInput): Promise<MenuDTO> {
@@ -148,7 +164,7 @@ export class MenuService {
     await this.restaurantsService.validateRestaurant(input.restaurantId);
     await this.validateMenu(input.menuId, input.restaurantId);
 
-    return this.prisma.menuItem.create({
+    const item = await this.prisma.menuItem.create({
       data: {
         restaurantId: input.restaurantId,
         menuId: input.menuId,
@@ -172,6 +188,8 @@ export class MenuService {
       },
       include: menuItemInclude,
     });
+
+    return toMenuItemDTO(item);
   }
 
   async updateMenuItem(
@@ -191,7 +209,7 @@ export class MenuService {
       await this.validateMenu(input.menuId, existing.restaurantId);
     }
 
-    return this.prisma.menuItem.update({
+    const item = await this.prisma.menuItem.update({
       where: { id: menuItemId },
       data: {
         ...(input.menuId !== undefined ? { menuId: input.menuId } : {}),
@@ -223,23 +241,27 @@ export class MenuService {
       },
       include: menuItemInclude,
     });
+
+    return toMenuItemDTO(item);
   }
 
   async archiveMenuItem(menuItemId: string, restaurantId: string): Promise<MenuItemDTO> {
-    const item = await this.prisma.menuItem.findFirst({
+    const existing = await this.prisma.menuItem.findFirst({
       where: { id: menuItemId, restaurantId },
       include: menuItemInclude,
     });
 
-    if (!item) {
+    if (!existing) {
       throw new NotFoundException('Menu item not found');
     }
 
-    return this.prisma.menuItem.update({
+    const updated = await this.prisma.menuItem.update({
       where: { id: menuItemId },
       data: { available: false },
       include: menuItemInclude,
     });
+
+    return toMenuItemDTO(updated);
   }
 
   async createModifierGroup(input: CreateModifierGroupInput): Promise<ModifierGroupDTO> {
@@ -271,7 +293,10 @@ export class MenuService {
         sortOrder: input.sortOrder ?? 0,
       },
       include: modifierGroupInclude,
-    });
+    }).then((g) => ({
+      ...g,
+      options: g.options.map((o) => ({ ...o, priceDelta: Number(o.priceDelta) })),
+    }));
   }
 
   async updateModifierGroup(
@@ -320,7 +345,10 @@ export class MenuService {
         ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
       },
       include: modifierGroupInclude,
-    });
+    }).then((g) => ({
+      ...g,
+      options: g.options.map((o) => ({ ...o, priceDelta: Number(o.priceDelta) })),
+    }));
   }
 
   async deleteModifierGroup(modifierGroupId: string, restaurantId: string): Promise<ModifierGroupDTO> {
@@ -337,7 +365,10 @@ export class MenuService {
       where: { id: modifierGroupId },
     });
 
-    return existing;
+    return {
+      ...existing,
+      options: existing.options.map((o) => ({ ...o, priceDelta: Number(o.priceDelta) })),
+    };
   }
 
   async createModifierOption(
@@ -371,7 +402,7 @@ export class MenuService {
         isDefault: input.isDefault ?? false,
         sortOrder: input.sortOrder ?? 0,
       },
-    });
+    }).then((o) => ({ ...o, priceDelta: Number(o.priceDelta) }));
   }
 
   async updateModifierOption(
@@ -416,7 +447,7 @@ export class MenuService {
         ...(input.isDefault !== undefined ? { isDefault: input.isDefault } : {}),
         ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
       },
-    });
+    }).then((o) => ({ ...o, priceDelta: Number(o.priceDelta) }));
   }
 
   async archiveModifierOption(
@@ -439,7 +470,7 @@ export class MenuService {
     return this.prisma.modifierOption.update({
       where: { id: modifierOptionId },
       data: { available: false, isDefault: false },
-    });
+    }).then((o) => ({ ...o, priceDelta: Number(o.priceDelta) }));
   }
 
   private async validateMenu(menuId: string, restaurantId: string) {
@@ -469,7 +500,7 @@ export class MenuService {
       throw new NotFoundException('One or more menu items were not found');
     }
 
-    return menuItems;
+    return menuItems.map(toMenuItemDTO);
   }
 
   private async validateMenuItem(menuItemId: string, restaurantId: string) {
